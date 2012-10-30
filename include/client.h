@@ -41,8 +41,9 @@
 #include <semaphore.h>
 
 #include <verse.h>
-#include <v_list.h>
 
+#include "list.h"
+#include "types.h"
 #include "particle_data.h"
 #include "display_glut.h"
 #include "particle_scene_node.h"

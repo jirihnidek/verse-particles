@@ -59,7 +59,7 @@ static void handle_signal(int sig)
 		if(ctx != NULL) {
 			printf("%s() try to terminate connection: %d\n",
 					__FUNCTION__, ctx->verse.session_id);
-			verse_send_connect_terminate(ctx->verse.session_id);
+			vrs_send_connect_terminate(ctx->verse.session_id);
 		} else {
 			exit(EXIT_FAILURE);
 		}

@@ -39,6 +39,8 @@
 
 #include <verse.h>
 
+#include "types.h"
+
 typedef struct LookUp_Item {
 	uint32		id;
 	void		*item;

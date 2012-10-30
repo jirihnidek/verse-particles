@@ -38,7 +38,9 @@
 #define PARTICLE_SCENE_H_
 
 #include <verse.h>
-#include <v_list.h>
+
+#include "list.h"
+#include "types.h"
 
 #define PSCE_FRAME_TAG_NAME			"Particle_Frame"
 #define PSCE_FRAME_TAG_TYPE			TAG_TYPE_INT32

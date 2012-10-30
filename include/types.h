@@ -1,5 +1,5 @@
 /*
- * $Id$
+ * $Id: verse_types.h 1331 2012-09-14 07:21:35Z jiri $
  *
  * ***** BEGIN BSD LICENSE BLOCK *****
  *
@@ -34,34 +34,26 @@
  *
  */
 
-#ifndef PARTICLE_SENDER_H_
-#define PARTICLE_SENDER_H_
+#ifndef VERSE_TYPES_H_
+#define VERSE_TYPES_H_
 
-#include <verse.h>
+#include "verse.h"
 
-#include "list.h"
-#include "types.h"
-#include "sender.h"
-#include "particle_scene_node.h"
+typedef int8_t				int8;
+typedef uint8_t				uint8;
+typedef int16_t				int16;
+typedef uint16_t			uint16;
+typedef int32_t				int32;
+typedef uint32_t			uint32;
+typedef int64_t				int64;
+typedef uint64_t			uint64;
+typedef uint16_t			real16;
+typedef float				real32;
+typedef double				real64;
 
-/**
- * This structure contains informations about node, that is parent of all
- * nodes representing particles.
- */
-typedef struct ParticleSenderNode {
-	struct ParticleSenderNode	*prev, *next;
-	uint8						type;
-	uint32						node_id;
-	uint16						particle_taggroup_id;
-	uint16						pos_tag_id;
-	uint16						count_tag_id;
-	uint16						sender_id_tag_id;
-	struct VListBase			particles;
-	struct ParticleSceneNode	*scene;
-	struct Particle_Sender		*sender;
-} ParticleSenderNode;
+typedef struct string8 {
+	uint8_t	length;
+	uint8_t	str[VRS_STRING8_MAX_SIZE+1];
+} string8;
 
-struct ParticleSenderNode *create_particle_sender_node(struct ParticleSceneNode *scene_node,
-		uint32 node_id);
-
-#endif /* PARTICLE_SENDER_H_ */
+#endif /* VERSE_TYPES_H_ */

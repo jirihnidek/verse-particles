@@ -41,7 +41,7 @@
 #include <pthread.h>
 
 #include <verse.h>
-#include <v_list.h>
+/*#include <v_list.h>*/
 
 #include "client.h"
 #include "client_particle_sender.h"
@@ -165,15 +165,15 @@ static int set_debug_level(char *debug_level)
 	int ret = 0;
 
 	if( strcmp(debug_level, "debug") == 0) {
-		ret = verse_set_debug_level(PRINT_DEBUG_MSG);
+		ret = verse_set_debug_level(VRS_PRINT_DEBUG_MSG);
 	} else if( strcmp(debug_level, "warning") == 0 ) {
-		ret = verse_set_debug_level(PRINT_WARNING);
+		ret = verse_set_debug_level(VRS_PRINT_WARNING);
 	} else if( strcmp(debug_level, "error") == 0 ) {
-		ret = verse_set_debug_level(PRINT_ERROR);
+		ret = verse_set_debug_level(VRS_PRINT_ERROR);
 	} else if( strcmp(debug_level, "info") == 0 ) {
-		ret = verse_set_debug_level(PRINT_INFO);
+		ret = verse_set_debug_level(VRS_PRINT_INFO);
 	} else if( strcmp(debug_level, "none") == 0 ) {
-		ret = verse_set_debug_level(PRINT_NONE);
+		ret = verse_set_debug_level(VRS_PRINT_NONE);
 	} else {
 		printf("Unsupported debug level: %s\n", debug_level);
 	}
