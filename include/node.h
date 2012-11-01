@@ -37,9 +37,11 @@
 #ifndef NODE_H_
 #define NODE_H_
 
-#define SCENE_NODE		1
-#define SENDER_NODE		2
-#define PARTICLE_NODE	3
+/* Custom types of nodes */
+
+#define PARTICLE_SCENE_NODE		100
+#define PARTICLE_SENDER_NODE	101
+#define PARTICLE_NODE			102
 
 /**
  * This structure contains informations about verse node.

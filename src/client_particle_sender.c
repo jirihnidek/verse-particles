@@ -54,17 +54,17 @@
 static struct Client_CTX *ctx = NULL;
 
 /* Custom types of taggroups */
-#define PARTICLE_SCENE	200
-#define PARTICLE_SENDER	201
-#define PARTICLE		202
+#define PARTICLE_SCENE			200
+#define PARTICLE_SENDER			201
+#define PARTICLE				202
 
 /* Custom types of tags */
-#define PARTICLE_FRAME 	300
-#define SENDER_COUNT	301
-#define POSITION		302
-#define PARTICLE_COUNT	303
-#define SENDER_ID		304
-#define PARTICLE_ID		305
+#define PARTICLE_FRAME 			300
+#define SENDER_COUNT			301
+#define POSITION				302
+#define PARTICLE_COUNT			303
+#define SENDER_ID				304
+#define PARTICLE_ID				305
 
 static void handle_signal(int sig)
 {
@@ -81,23 +81,26 @@ static void handle_signal(int sig)
 	}
 }
 
-static void cb_receive_tag_set_vec3_real32(const uint8 session_id,
+static void cb_receive_tag_set_value(const uint8 session_id,
 		const uint32 node_id,
 		const uint16 taggroup_id,
 		const uint16 tag_id,
-		const real32 vec[3])
+		const uint8 data_type,
+		const uint8 count,
+		const void *value)
 {
 	struct Node *node;
 	struct ParticleSenderNode *sender_node;
+	struct ParticleSceneNode *scene_node;
 
-	printf("%s() session_id: %u, node_id: %u, taggroup_id: %u, tag_id: %u, vec: (%6.3f, %6.3f, %6.3f)\n",
-				__FUNCTION__, session_id, node_id, taggroup_id, tag_id, vec[0], vec[1], vec[2]);
+	printf("%s() session_id: %u, node_id: %u, taggroup_id: %u, tag_id: %u, type: %d, count %d, data: %p\n",
+				__FUNCTION__, session_id, node_id, taggroup_id, tag_id, data_type, count, value);
 
 	node = lu_find(ctx->verse.lu_table, node_id);
 
 	if(node != NULL) {
 		switch(node->type) {
-		case SENDER_NODE:
+		case PARTICLE_SENDER_NODE:
 			sender_node = (struct ParticleSenderNode*)node;
 
 			if(sender_node->particle_taggroup_id == taggroup_id &&
@@ -105,51 +108,21 @@ static void cb_receive_tag_set_vec3_real32(const uint8 session_id,
 			{
 			}
 			break;
-		}
-	}
-}
-
-static void cb_receive_tag_set_uint16(const uint8 session_id,
-		const uint32 node_id,
-		const uint16 taggroup_id,
-		const uint16 tag_id,
-		const uint16 value)
-{
-	printf("%s() session_id: %u, node_id: %u, taggroup_id: %u, tag_id: %u, value: %u\n",
-				__FUNCTION__, session_id, node_id, taggroup_id, tag_id, value);
-}
-
-static void cb_receive_tag_set_int16(const uint8 session_id,
-		const uint32 node_id,
-		const uint16 taggroup_id,
-		const uint16 tag_id,
-		const int16 value)
-{
-	struct Node *node;
-	struct ParticleSceneNode *scene_node;
-
-	printf("%s() session_id: %u, node_id: %u, taggroup_id: %u, tag_id: %u, value: %d\n",
-				__FUNCTION__, session_id, node_id, taggroup_id, tag_id, value);
-
-	node = lu_find(ctx->verse.lu_table, node_id);
-
-	if(node != NULL) {
-		switch(node->type) {
-		case SCENE_NODE:
+		case PARTICLE_SCENE_NODE:
 			scene_node = (struct ParticleSceneNode *)node;
 
 			if(scene_node->particle_frame_tag_id == tag_id) {
-				static int16 init_value;
+				static int16_t init_value;
 				pthread_mutex_lock(&ctx->timer->mutex);
 				if(ctx->timer->run == 0) {
 					ctx->timer->run = 1;
-					init_value = value;
-					ctx->timer->tot_frame = value - 1;
+					init_value = *((uint16_t*)value);
+					ctx->timer->tot_frame = init_value - 1;
 				} else if(ctx->timer->tot_frame > ctx->pd->frame_count &&
-						value <= init_value)
+						*((uint16_t*)value) <= init_value)
 				{
-					init_value = value;
-					ctx->timer->tot_frame = value - 1;
+					init_value = *((uint16_t*)value);
+					ctx->timer->tot_frame = init_value - 1;
 				}
 				pthread_mutex_unlock(&ctx->timer->mutex);
 			}
@@ -187,7 +160,7 @@ static void cb_receive_tag_create(const uint8 session_id,
 
 	if(node != NULL) {
 		switch(node->type) {
-		case SCENE_NODE:
+		case PARTICLE_SCENE_NODE:
 			scene_node = (struct ParticleSceneNode *)node;
 
 			if(scene_node->particle_taggroup_id == taggroup_id) {
@@ -202,7 +175,7 @@ static void cb_receive_tag_create(const uint8 session_id,
 				}
 			}
 			break;
-		case SENDER_NODE:
+		case PARTICLE_SENDER_NODE:
 			sender_node = (struct ParticleSenderNode*)node;
 
 			if(sender_node->particle_taggroup_id == taggroup_id) {
@@ -269,7 +242,7 @@ static void cb_receive_taggroup_create(const uint8 session_id,
 
 	if(node != NULL) {
 		switch(node->type) {
-		case SCENE_NODE:
+		case PARTICLE_SCENE_NODE:
 			scene_node = (struct ParticleSceneNode *)node;
 
 			if(custom_type == PARTICLE_SCENE) {
@@ -283,7 +256,7 @@ static void cb_receive_taggroup_create(const uint8 session_id,
 						node_id, taggroup_id, VRS_VALUE_TYPE_UINT16, 1, SENDER_COUNT);
 			}
 			break;
-		case SENDER_NODE:
+		case PARTICLE_SENDER_NODE:
 			sender_node = (struct ParticleSenderNode*)node;
 
 			if(custom_type == PARTICLE_SENDER) {
@@ -328,15 +301,17 @@ static void cb_receive_node_link(const uint8 session_id,
 static void cb_receive_node_create(const uint8 session_id,
 		const uint32 node_id,
 		const uint32 parent_id,
-		const uint16 user_id)
+		const uint16 user_id,
+		const uint16 custom_type)
 {
-	printf("%s() session_id: %d, node_id: %d, parent_id: %d, user_id: %d\n",
-			__FUNCTION__, session_id, node_id, parent_id, user_id);
+	printf("%s() session_id: %d, node_id: %d, parent_id: %d, user_id: %d, custom_type: %d\n",
+			__FUNCTION__, session_id, node_id, parent_id, user_id, custom_type);
 
 	if(user_id != ctx->verse.user_id) {
 		return;
 	}
 
+	/* TODO: use custom_type */
 	if(parent_id == ctx->verse.avatar_id) {
 		if(ctx->verse.particle_scene_node == NULL) {
 			/* Create node of particle scene */
@@ -434,14 +409,14 @@ static void cb_receive_connect_accept(const uint8 session_id,
 	vrs_send_node_subscribe(session_id, VRS_DEFAULT_PRIORITY, avatar_id, 0);
 
 	/* Create new node (particle scene node) */
-	vrs_send_node_create(session_id, VRS_DEFAULT_PRIORITY);
+	vrs_send_node_create(session_id, VRS_DEFAULT_PRIORITY, PARTICLE_SCENE_NODE);
 
 	for(i=0; i<ctx->sender_count; i++) {
-		/* Create new node (particle sender) */
-		vrs_send_node_create(session_id, VRS_DEFAULT_PRIORITY);
-		/* Create new node (particle) */
+		/* Create new node (particle sender node) */
+		vrs_send_node_create(session_id, VRS_DEFAULT_PRIORITY, PARTICLE_SENDER_NODE);
+		/* Create new node (particle node) */
 		for(j=0; j<ctx->pd->particle_count; j++) {
-			vrs_send_node_create(session_id, VRS_DEFAULT_PRIORITY);
+			vrs_send_node_create(session_id, VRS_DEFAULT_PRIORITY, PARTICLE_NODE);
 		}
 	}
 }
@@ -478,7 +453,7 @@ static void cb_receive_user_authenticate(const uint8 session_id,
 
 	for(i=0; i<auth_methods_count; i++) {
 		printf("%d, ", methods[i]);
-		if(methods[i]==UA_METHOD_PASSWORD)
+		if(methods[i]==VRS_UA_METHOD_PASSWORD)
 			is_passwd_supported = 1;
 	}
 	printf("\n");
@@ -489,9 +464,9 @@ static void cb_receive_user_authenticate(const uint8 session_id,
 			printf("Username: ");
 			scanf("%s", name);
 			attempts = 0;	/* Reset counter of auth. attempt. */
-			vrs_send_user_authenticate(session_id, name, UA_METHOD_NONE, NULL);
+			vrs_send_user_authenticate(session_id, name, VRS_UA_METHOD_NONE, NULL);
 		} else {
-			vrs_send_user_authenticate(session_id, my_user_name, UA_METHOD_NONE, NULL);
+			vrs_send_user_authenticate(session_id, my_user_name, VRS_UA_METHOD_NONE, NULL);
 		}
 	} else {
 		if(is_passwd_supported==1) {
@@ -503,9 +478,9 @@ static void cb_receive_user_authenticate(const uint8 session_id,
 				/* Get password from user */
 				password = getpass("Password: ");
 				attempts++;
-				vrs_send_user_authenticate(session_id, name, UA_METHOD_PASSWORD, password);
+				vrs_send_user_authenticate(session_id, name, VRS_UA_METHOD_PASSWORD, password);
 			} else {
-				vrs_send_user_authenticate(session_id, name, UA_METHOD_PASSWORD, my_password);
+				vrs_send_user_authenticate(session_id, name, VRS_UA_METHOD_PASSWORD, my_password);
 			}
 		} else {
 			printf("ERROR: Verse server does not support password authentication method\n");
@@ -516,23 +491,20 @@ static void cb_receive_user_authenticate(const uint8 session_id,
 static void register_cb_func_particle_sender(void)
 {
 	/* Register callback functions */
-	register_receive_user_authenticate(cb_receive_user_authenticate);
-	register_receive_connect_accept(cb_receive_connect_accept);
-	register_receive_connect_terminate(cb_receive_connect_terminate);
+	vrs_register_receive_user_authenticate(cb_receive_user_authenticate);
+	vrs_register_receive_connect_accept(cb_receive_connect_accept);
+	vrs_register_receive_connect_terminate(cb_receive_connect_terminate);
 
-	register_receive_node_create(cb_receive_node_create);
-	register_receive_node_destroy(cb_receive_node_destroy);
-	register_receive_node_link(cb_receive_node_link);
+	vrs_register_receive_node_create(cb_receive_node_create);
+	vrs_register_receive_node_destroy(cb_receive_node_destroy);
+	vrs_register_receive_node_link(cb_receive_node_link);
 
-	register_receive_taggroup_create(cb_receive_taggroup_create);
-	register_receive_taggroup_destroy(cb_receive_taggroup_destroy);
-	register_receive_tag_create(cb_receive_tag_create);
-	register_receive_tag_destroy(cb_receive_tag_destroy);
+	vrs_register_receive_taggroup_create(cb_receive_taggroup_create);
+	vrs_register_receive_taggroup_destroy(cb_receive_taggroup_destroy);
+	vrs_register_receive_tag_create(cb_receive_tag_create);
+	vrs_register_receive_tag_destroy(cb_receive_tag_destroy);
 
-	register_receive_tag_set_uint16(cb_receive_tag_set_uint16);
-	register_receive_tag_set_int16(cb_receive_tag_set_int16);
-
-	register_receive_tag_set_vec3_real32(cb_receive_tag_set_vec3_real32);
+	vrs_register_receive_tag_set_value(cb_receive_tag_set_value);
 }
 
 /**
@@ -547,12 +519,14 @@ static void verse_send_data(void)
 
 		/* Send current frame */
 		if(ctx->timer->tot_frame < ctx->pd->frame_count) {
-			vrs_send_tag_set_int16(ctx->verse.session_id,
+			vrs_send_tag_set_value(ctx->verse.session_id,
 					VRS_DEFAULT_PRIORITY,
 					ctx->verse.particle_scene_node->node_id,
 					ctx->verse.particle_scene_node->particle_taggroup_id,
 					ctx->verse.particle_scene_node->particle_frame_tag_id,
-					ctx->timer->tot_frame);
+					VRS_VALUE_TYPE_UINT16,
+					1,
+					&ctx->timer->tot_frame);
 		}
 
 		/* Send position for current frame */
@@ -569,11 +543,13 @@ static void verse_send_data(void)
 				for(particle_node = sender_node->particles.first; particle_node !=NULL; particle_node = particle_node->next) {
 					/* Send all active particles */
 					if(particle_node->ref_particle->states[ctx->timer->frame].state == PARTICLE_STATE_ACTIVE) {
-						vrs_send_tag_set_vec3_real32(ctx->verse.session_id,
+						vrs_send_tag_set_value(ctx->verse.session_id,
 								VRS_DEFAULT_PRIORITY,
 								particle_node->node_id,
 								particle_node->particle_taggroup_id,
 								particle_node->pos_tag_id,
+								VRS_VALUE_TYPE_REAL32,
+								3,
 								particle_node->ref_particle->states[ctx->timer->frame].pos);
 					}
 				}
@@ -596,8 +572,8 @@ int particle_sender_loop(struct Client_CTX *ctx_)
 
 	register_cb_func_particle_sender();
 
-	if((ret = vrs_send_connect_request(ctx->verse.server_name, "12345", DGRAM_SEC_NONE ,&ctx->verse.session_id))!=VC_SUCCESS) {
-		printf("ERROR: %s\n", verse_strerror(ret));
+	if((ret = vrs_send_connect_request(ctx->verse.server_name, "12345", VRS_DGRAM_SEC_NONE ,&ctx->verse.session_id))!=VRS_SUCCESS) {
+		printf("ERROR: %s\n", vrs_strerror(ret));
 		return 0;
 	}
 
@@ -605,7 +581,7 @@ int particle_sender_loop(struct Client_CTX *ctx_)
 	while(1) {
 		/* usleep(1000000/ctx->verse.fps); */
 		sem_wait(&ctx->timer_sem);
-		verse_callback_update(ctx->verse.session_id);
+		vrs_callback_update(ctx->verse.session_id);
 		verse_send_data();
 	}
 
