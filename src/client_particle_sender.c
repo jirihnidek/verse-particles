@@ -53,19 +53,6 @@
 
 static struct Client_CTX *ctx = NULL;
 
-/* Custom types of taggroups */
-#define PARTICLE_SCENE			200
-#define PARTICLE_SENDER			201
-#define PARTICLE				202
-
-/* Custom types of tags */
-#define PARTICLE_FRAME 			300
-#define SENDER_COUNT			301
-#define POSITION				302
-#define PARTICLE_COUNT			303
-#define SENDER_ID				304
-#define PARTICLE_ID				305
-
 static void handle_signal(int sig)
 {
 	if(sig == SIGINT) {

@@ -38,10 +38,22 @@
 #define NODE_H_
 
 /* Custom types of nodes */
-
 #define PARTICLE_SCENE_NODE		100
 #define PARTICLE_SENDER_NODE	101
 #define PARTICLE_NODE			102
+
+/* Custom types of taggroups */
+#define PARTICLE_SCENE			200
+#define PARTICLE_SENDER			201
+#define PARTICLE				202
+
+/* Custom types of tags */
+#define PARTICLE_FRAME 			300
+#define SENDER_COUNT			301
+#define POSITION				302
+#define PARTICLE_COUNT			303
+#define SENDER_ID				304
+#define PARTICLE_ID				305
 
 /**
  * This structure contains informations about verse node.
