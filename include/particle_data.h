@@ -39,6 +39,8 @@
 
 #include <verse.h>
 
+#include "types.h"
+
 typedef enum Particle_State {
 	PARTICLE_STATE_RESERVED	= 0,
 	PARTICLE_STATE_UNBORN	= 1,
