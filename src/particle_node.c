@@ -36,6 +36,7 @@
 
 #include <verse.h>
 #include <stdlib.h>
+#include <stdio.h>
 
 #include "particle_node.h"
 #include "node.h"

@@ -41,7 +41,6 @@
 #include <pthread.h>
 
 #include <verse.h>
-/*#include <v_list.h>*/
 
 #include "client.h"
 #include "client_particle_sender.h"

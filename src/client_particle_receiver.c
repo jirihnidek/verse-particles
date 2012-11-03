@@ -161,6 +161,35 @@ static void _position_received(struct ParticleNode *particle_node,
 	}
 }
 
+static void _id_received(uint8 session_id,
+		struct ParticleNode *particle_node,
+		uint16 value)
+{
+	struct ParticleSenderNode *sender_node = particle_node->sender;
+
+	if(value < ctx->pd->particle_count) {
+		particle_node->ref_particle = &ctx->pd->particles[value];
+		particle_node->rec_particle = &sender_node->sender->rec_pd->received_particles[value];
+
+		if(value == (ctx->pd->particle_count-1)) {
+			int16 frame = -25;
+			printf(">>>Starting animation<<<<\n");
+			/* Send frame, when receiver received all needed data */
+			vrs_send_tag_set_value(session_id,
+					VRS_DEFAULT_PRIORITY,
+					ctx->verse.particle_scene_node->node_id,
+					ctx->verse.particle_scene_node->particle_taggroup_id,
+					ctx->verse.particle_scene_node->particle_frame_tag_id,
+					VRS_VALUE_TYPE_UINT16,
+					1,
+					&frame);
+		}
+
+	} else {
+		printf("ERROR: Bad particle ID: %d\n", value);
+	}
+}
+
 static void cb_receive_tag_set_value(const uint8 session_id,
 		const uint32 node_id,
 		const uint16 taggroup_id,
@@ -197,6 +226,13 @@ static void cb_receive_tag_set_value(const uint8 session_id,
 			if(particle_node->particle_taggroup_id == taggroup_id) {
 				if(particle_node->pos_tag_id == tag_id) {
 					_position_received(particle_node, (real32*)value);
+				}
+			}
+
+			/* Was particle ID received? */
+			if(particle_node->particle_taggroup_id == taggroup_id) {
+				if(particle_node->particle_id_tag_id == tag_id) {
+					_id_received(session_id, particle_node, *(uint16*)value);
 				}
 			}
 			break;
