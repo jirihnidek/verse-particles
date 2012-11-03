@@ -37,6 +37,8 @@
 #ifndef TIMER_H_
 #define TIMER_H_
 
+#include "types.h"
+
 #define ONE_SECOND		1000000
 
 typedef struct Timer {

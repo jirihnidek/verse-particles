@@ -44,9 +44,9 @@
 #include <stdio.h>
 #include <math.h>
 
-#include "verse.h"
-#include "v_list.h"
+#include <verse.h>
 
+#include "list.h"
 #include "client.h"
 #include "display_glut.h"
 #include "math_lib.h"
@@ -630,21 +630,24 @@ void glut_on_keyboard(unsigned char key, int x, int y)
 			exit(0);
 			break;
 		case 'q':
-			verse_send_connect_terminate(ctx->verse.session_id);
+			vrs_send_connect_terminate(ctx->verse.session_id);
 			break;
 		case 'r':
 			pthread_mutex_lock(&ctx->timer->mutex);
 			if(ctx->timer->tot_frame > ctx->pd->frame_count) {
 				if(ctx->verse.particle_scene_node != NULL) {
 					struct Particle_Sender *sender;
+					int16 frame = -25;
 
 					printf("Try to reset frame\n");
-					verse_send_tag_set_int16(ctx->verse.session_id,
-							DEFAULT_PRIORITY,
+					vrs_send_tag_set_value(ctx->verse.session_id,
+							VRS_DEFAULT_PRIORITY,
 							ctx->verse.particle_scene_node->node_id,
 							ctx->verse.particle_scene_node->particle_taggroup_id,
 							ctx->verse.particle_scene_node->particle_frame_tag_id,
-							-25);
+							VRS_VALUE_TYPE_UINT16,
+							1,
+							&frame);
 					ctx->timer->run = 0;
 					ctx->timer->frame = -1;
 					ctx->timer->tot_frame = -1;

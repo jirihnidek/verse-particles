@@ -39,6 +39,8 @@
 
 #include <verse.h>
 
+#include "types.h"
+
 void cartesion_to_spherical(real32 cart[3], real32 spher[3]);
 void spherical_to_cartesian(real32 spher[3], real32 cart[3]);
 

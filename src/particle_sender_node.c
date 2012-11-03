@@ -35,6 +35,7 @@
  */
 
 #include <stdlib.h>
+#include <stdio.h>
 
 #include <verse.h>
 
@@ -50,7 +51,7 @@ struct ParticleSenderNode *create_particle_sender_node(struct ParticleSceneNode 
 
 	if(node != NULL) {
 		node->node_id = node_id;
-		node->type = SENDER_NODE;
+		node->type = PARTICLE_SENDER_NODE;
 		node->count_tag_id = -1;
 		node->particle_taggroup_id = -1;
 		node->pos_tag_id = -1;

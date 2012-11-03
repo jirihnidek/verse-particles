@@ -165,15 +165,15 @@ static int set_debug_level(char *debug_level)
 	int ret = 0;
 
 	if( strcmp(debug_level, "debug") == 0) {
-		ret = verse_set_debug_level(VRS_PRINT_DEBUG_MSG);
+		ret = vrs_set_debug_level(VRS_PRINT_DEBUG_MSG);
 	} else if( strcmp(debug_level, "warning") == 0 ) {
-		ret = verse_set_debug_level(VRS_PRINT_WARNING);
+		ret = vrs_set_debug_level(VRS_PRINT_WARNING);
 	} else if( strcmp(debug_level, "error") == 0 ) {
-		ret = verse_set_debug_level(VRS_PRINT_ERROR);
+		ret = vrs_set_debug_level(VRS_PRINT_ERROR);
 	} else if( strcmp(debug_level, "info") == 0 ) {
-		ret = verse_set_debug_level(VRS_PRINT_INFO);
+		ret = vrs_set_debug_level(VRS_PRINT_INFO);
 	} else if( strcmp(debug_level, "none") == 0 ) {
-		ret = verse_set_debug_level(VRS_PRINT_NONE);
+		ret = vrs_set_debug_level(VRS_PRINT_NONE);
 	} else {
 		printf("Unsupported debug level: %s\n", debug_level);
 	}

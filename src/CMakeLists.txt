@@ -34,4 +34,5 @@ target_link_libraries (verse_particle
 		${CMAKE_THREAD_LIBS_INIT}
 		${OPENSSL_LIBRARIES}
 		${OPENGL_LIBRARIES}
-		${GLUT_LIBRARIES})
+		${GLUT_LIBRARIES}
+		${M_LIB})

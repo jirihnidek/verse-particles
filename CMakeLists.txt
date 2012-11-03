@@ -35,6 +35,9 @@ find_package (Threads REQUIRED)
 find_package (OpenGL REQUIRED)
 find_package (GLUT REQUIRED)
 
+# Find system library
+find_library (M_LIB m)
+
 # Set output directory for libraries
 set (LIBRARY_OUTPUT_PATH ${PROJECT_BINARY_DIR}/lib/)
 
