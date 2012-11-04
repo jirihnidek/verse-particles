@@ -56,6 +56,7 @@ typedef struct ParticleSenderNode {
 	uint16						pos_tag_id;
 	uint16						count_tag_id;
 	uint16						sender_id_tag_id;
+	uint16						particle_layer_id;
 	struct VListBase			particles;
 	struct ParticleSceneNode	*scene;
 	struct Particle_Sender		*sender;

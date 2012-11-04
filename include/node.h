@@ -55,6 +55,9 @@
 #define SENDER_ID				304
 #define PARTICLE_ID				305
 
+/* Custom type of layers */
+#define PARTICLES				400
+
 /**
  * This structure contains informations about verse node.
  */

@@ -327,7 +327,7 @@ struct RefParticleData *read_ref_particle_data(char *dir_name)
 }
 
 /**
- * \brief This particle tries to find reference particle according received frame
+ * \brief This function tries to find reference particle according received frame
  * and position
  */
 struct RefParticleState *find_ref_particle_state(struct RefParticleData *pd,

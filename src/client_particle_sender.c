@@ -68,6 +68,42 @@ static void handle_signal(int sig)
 	}
 }
 
+static void cb_receive_layer_set_value(const uint8_t session_id,
+		const uint32_t node_id,
+		const uint16_t layer_id,
+		const uint32_t item_id,
+		const uint8_t data_type,
+		const uint8_t count,
+		const void *value)
+{
+	printf("%s() session_id: %u, node_id: %u, layer_id: %u, item_id: %u, data_type: %u, count: %u, value: %p\n",
+				__FUNCTION__, session_id, node_id, layer_id, item_id, data_type, count, value);
+}
+
+static void cb_receive_layer_create(const uint8 session_id,
+		const uint32 node_id,
+		const uint16 parent_layer_id,
+		const uint16 layer_id,
+		const uint8 data_type,
+		const uint8 count,
+		const uint16 custom_type)
+{
+	struct Node *node;
+	struct ParticleSenderNode *sender_node;
+
+	printf("%s() session_id: %u, node_id: %u, layer_id: %u, parent_layer_id: %u, data_type: %u, count: %u, custom_type: %u\n",
+				__FUNCTION__, session_id, node_id, layer_id, parent_layer_id, data_type, count, custom_type);
+
+	node = lu_find(ctx->verse.lu_table, node_id);
+
+	if(node->type == PARTICLE_SENDER_NODE) {
+		if(custom_type == PARTICLES) {
+			sender_node = (struct ParticleSenderNode*)node;
+			sender_node->particle_layer_id = layer_id;
+		}
+	}
+}
+
 static void cb_receive_tag_set_value(const uint8 session_id,
 		const uint32 node_id,
 		const uint16 taggroup_id,
@@ -93,6 +129,7 @@ static void cb_receive_tag_set_value(const uint8 session_id,
 			if(sender_node->particle_taggroup_id == taggroup_id &&
 					sender_node->pos_tag_id == tag_id)
 			{
+				/* TODO: set position */
 			}
 			break;
 		case PARTICLE_SCENE_NODE:
@@ -152,8 +189,8 @@ static void cb_receive_tag_create(const uint8 session_id,
 
 			if(scene_node->particle_taggroup_id == taggroup_id) {
 				if(data_type == VRS_VALUE_TYPE_UINT16 && count == 1 && custom_type == PARTICLE_FRAME) {
-					scene_node->particle_frame_tag_id = tag_id;
 					/* Frame start to be send, when animation starts */
+					scene_node->particle_frame_tag_id = tag_id;
 				} else if(data_type == VRS_VALUE_TYPE_UINT16 && count == 1 && custom_type == SENDER_COUNT) {
 					scene_node->sender_count_tag_id = tag_id;
 
@@ -172,11 +209,13 @@ static void cb_receive_tag_create(const uint8 session_id,
 						vrs_send_tag_set_value(session_id, VRS_DEFAULT_PRIORITY,
 								node_id, taggroup_id, tag_id, data_type, count, sender_node->sender->pos);
 					}
-				} else if(data_type == VRS_VALUE_TYPE_UINT16 && count == 1 && custom_type == PARTICLE_COUNT) {
+				} else if(data_type == VRS_VALUE_TYPE_UINT16 && count == 1
+						&& custom_type == PARTICLE_COUNT) {
 					sender_node->count_tag_id = tag_id;
 					vrs_send_tag_set_value(session_id, VRS_DEFAULT_PRIORITY, node_id,
 							taggroup_id, tag_id, data_type, count, &ctx->pd->particle_count);
-				} else if(data_type == VRS_VALUE_TYPE_UINT16 && count == 1 && custom_type == SENDER_ID) {
+				} else if(data_type == VRS_VALUE_TYPE_UINT16 && count == 1
+						&& custom_type == SENDER_ID) {
 					sender_node->sender_id_tag_id = tag_id;
 					if(sender_node->sender != NULL) {
 						vrs_send_tag_set_value(session_id, VRS_DEFAULT_PRIORITY,
@@ -342,9 +381,14 @@ static void cb_receive_node_create(const uint8 session_id,
 
 				v_list_add_tail(&ctx->verse.particle_scene_node->senders, sender_node);
 
-				vrs_send_node_subscribe(session_id, VRS_DEFAULT_PRIORITY, node_id, 0);
-				vrs_send_node_link(session_id, VRS_DEFAULT_PRIORITY, ctx->verse.particle_scene_node->node_id, node_id);
-				vrs_send_taggroup_create(session_id, VRS_DEFAULT_PRIORITY, node_id, PARTICLE_SENDER);
+				vrs_send_node_subscribe(session_id, VRS_DEFAULT_PRIORITY,
+						node_id, 0);
+				vrs_send_node_link(session_id, VRS_DEFAULT_PRIORITY,
+						ctx->verse.particle_scene_node->node_id, node_id);
+				vrs_send_taggroup_create(session_id, VRS_DEFAULT_PRIORITY,
+						node_id, PARTICLE_SENDER);
+				vrs_send_layer_create(session_id, VRS_DEFAULT_PRIORITY,
+						node_id, 0xFFFF, VRS_VALUE_TYPE_REAL32, 3, PARTICLES);
 			}
 			break;
 		case PARTICLE_NODE:
@@ -385,7 +429,10 @@ static void cb_receive_connect_accept(const uint8 session_id,
       const uint16 user_id,
       const uint32 avatar_id)
 {
-	uint32 i, j;
+	uint32 i;
+#if 0
+	uint32 j;
+#endif
 
 	printf("%s() session_id: %d, user_id: %d, avatar_id: %d\n",
 			__FUNCTION__, session_id, user_id, avatar_id);
@@ -402,10 +449,12 @@ static void cb_receive_connect_accept(const uint8 session_id,
 	for(i=0; i<ctx->sender_count; i++) {
 		/* Create new node (particle sender node) */
 		vrs_send_node_create(session_id, VRS_DEFAULT_PRIORITY, PARTICLE_SENDER_NODE);
+#if 0
 		/* Create new node (particle node) */
 		for(j=0; j<ctx->pd->particle_count; j++) {
 			vrs_send_node_create(session_id, VRS_DEFAULT_PRIORITY, PARTICLE_NODE);
 		}
+#endif
 	}
 }
 
@@ -491,8 +540,10 @@ static void register_cb_func_particle_sender(void)
 	vrs_register_receive_taggroup_destroy(cb_receive_taggroup_destroy);
 	vrs_register_receive_tag_create(cb_receive_tag_create);
 	vrs_register_receive_tag_destroy(cb_receive_tag_destroy);
-
 	vrs_register_receive_tag_set_value(cb_receive_tag_set_value);
+
+	vrs_register_receive_layer_create(cb_receive_layer_create);
+	vrs_register_receive_layer_set_value(cb_receive_layer_set_value);
 }
 
 /**
@@ -523,12 +574,34 @@ static void verse_send_data(void)
 		{
 			struct ParticleSceneNode *scene_node = ctx->verse.particle_scene_node;
 			struct ParticleSenderNode *sender_node;
+			uint16 item_id;
+#if 0
 			struct ParticleNode *particle_node;
+#endif
 
 			/* For all senders ... */
-			for(sender_node = scene_node->senders.first; sender_node != NULL; sender_node = sender_node->next) {
+			for(sender_node = scene_node->senders.first;
+					sender_node != NULL;
+					sender_node = sender_node->next)
+			{
 				/* For all particles of sender ... */
-				for(particle_node = sender_node->particles.first; particle_node !=NULL; particle_node = particle_node->next) {
+				for(item_id = 0; item_id < ctx->pd->particle_count; item_id++) {
+					/* Send all active particles */
+					if(ctx->pd->particles[item_id].states[ctx->timer->frame].state == PARTICLE_STATE_ACTIVE) {
+						vrs_send_layer_set_value(ctx->verse.session_id,
+								VRS_DEFAULT_PRIORITY,
+								sender_node->node_id,
+								sender_node->particle_layer_id,
+								item_id,
+								VRS_VALUE_TYPE_REAL32,
+								3,
+								ctx->pd->particles[item_id].states[ctx->timer->frame].pos);
+					}
+				}
+#if 0
+				for(particle_node = sender_node->particles.first;
+						particle_node !=NULL;
+						particle_node = particle_node->next) {
 					/* Send all active particles */
 					if(particle_node->ref_particle->states[ctx->timer->frame].state == PARTICLE_STATE_ACTIVE) {
 						vrs_send_tag_set_value(ctx->verse.session_id,
@@ -541,6 +614,7 @@ static void verse_send_data(void)
 								particle_node->ref_particle->states[ctx->timer->frame].pos);
 					}
 				}
+#endif
 			}
 		}
 	}

@@ -66,6 +66,109 @@ static void handle_signal(int sig)
 	}
 }
 
+static void cb_receive_layer_set_value(const uint8_t session_id,
+		const uint32_t node_id,
+		const uint16_t layer_id,
+		const uint32_t item_id,
+		const uint8_t data_type,
+		const uint8_t count,
+		const void *value)
+{
+	struct Node *node;
+	struct ParticleSenderNode *sender_node;
+	struct Particle_Sender *sender;
+	struct RefParticleState *ref_state;
+	uint16 current_frame;
+
+	printf("%s() session_id: %u, node_id: %u, layer_id: %u, item_id: %u, data_type: %u, count: %u, value: %p\n",
+				__FUNCTION__, session_id, node_id, layer_id, item_id, data_type, count, value);
+
+	node = lu_find(ctx->verse.lu_table, node_id);
+	if(node != NULL) {
+		sender_node = (struct ParticleSenderNode*)node;
+		sender = sender_node->sender;
+
+		pthread_mutex_lock(&ctx->timer->mutex);
+		current_frame = ctx->timer->frame;
+		pthread_mutex_unlock(&ctx->timer->mutex);
+
+		/* Find reference state */
+		ref_state = find_ref_particle_state(ctx->pd,
+				&ctx->pd->particles[item_id],
+				sender_node->sender->rec_pd->rec_frame,
+				(real32*)value);
+
+		if(ref_state != NULL) {
+			struct ReceivedParticleState *rec_state;
+
+			pthread_mutex_lock(&sender_node->sender->rec_pd->mutex);
+
+			rec_state = &sender->rec_pd->received_particles->received_states[ref_state->frame];
+
+			/* Set up first, last and current received state */
+			if(sender->rec_pd->received_particles[item_id].first_received_state == NULL) {
+				sender->rec_pd->received_particles[item_id].first_received_state = rec_state;
+				sender->rec_pd->received_particles[item_id].last_received_state = rec_state;
+			} else {
+				if(sender->rec_pd->received_particles[item_id].first_received_state->ref_particle_state->frame > rec_state->ref_particle_state->frame) {
+					sender->rec_pd->received_particles[item_id].first_received_state = rec_state;
+				}
+				if(sender->rec_pd->received_particles[item_id].last_received_state->ref_particle_state->frame < rec_state->ref_particle_state->frame) {
+					sender->rec_pd->received_particles[item_id].last_received_state = rec_state;
+				}
+			}
+
+			/* This state is the current received */
+			sender->rec_pd->received_particles[item_id].current_received_state = rec_state;
+
+			/* At this frame was particle received */
+			rec_state->received_frame = current_frame;
+			/* Set up delay of receiving */
+			rec_state->delay = current_frame - ref_state->frame;
+
+			/* Set up state according delay */
+			if(rec_state->delay == 0 || rec_state->delay == 1) {
+				rec_state->state = RECEIVED_STATE_INTIME;
+			} else if( rec_state->delay > 1) {
+				rec_state->state = RECEIVED_STATE_DELAY;
+			} else {
+				rec_state->state = RECEIVED_STATE_AHEAD;
+			}
+
+			pthread_mutex_unlock(&sender_node->sender->rec_pd->mutex);
+		} else {
+			printf("ERROR: Reference particle state not found\n");
+		}
+	}
+}
+
+static void cb_receive_layer_create(const uint8 session_id,
+		const uint32 node_id,
+		const uint16 parent_layer_id,
+		const uint16 layer_id,
+		const uint8 data_type,
+		const uint8 count,
+		const uint16 custom_type)
+{
+	struct Node *node;
+	struct ParticleSenderNode *sender_node;
+
+	printf("%s() session_id: %u, node_id: %u, layer_id: %u, parent_layer_id: %u, data_type: %u, count: %u, custom_type: %u\n",
+				__FUNCTION__, session_id, node_id, layer_id, parent_layer_id, data_type, count, custom_type);
+
+	node = lu_find(ctx->verse.lu_table, node_id);
+
+	if(node->type == PARTICLE_SENDER_NODE) {
+		if(custom_type == PARTICLES) {
+			sender_node = (struct ParticleSenderNode*)node;
+			sender_node->particle_layer_id = layer_id;
+
+			vrs_send_layer_subscribe(session_id, VRS_DEFAULT_PRIORITY,
+					node_id, layer_id, 0, 0);
+		}
+	}
+}
+
 static void _frame_received(struct ParticleSceneNode *scene_node,
 		int16 value)
 {
@@ -275,9 +378,25 @@ static void cb_receive_tag_create(const uint8 session_id,
 			scene_node = (struct ParticleSceneNode *)node;
 
 			if(scene_node->particle_taggroup_id == taggroup_id) {
-				if(data_type == VRS_VALUE_TYPE_UINT16 && custom_type == PARTICLE_FRAME) {
+				if(data_type == VRS_VALUE_TYPE_UINT16 &&
+						custom_type == PARTICLE_FRAME)
+				{
+					int16 frame = -25;
 					scene_node->particle_frame_tag_id = tag_id;
-				} else if(data_type == VRS_VALUE_TYPE_UINT16 && custom_type == SENDER_COUNT) {
+					printf(">>>Starting animation<<<<\n");
+					/* Send frame, when receiver received all needed data */
+					vrs_send_tag_set_value(session_id,
+							VRS_DEFAULT_PRIORITY,
+							ctx->verse.particle_scene_node->node_id,
+							ctx->verse.particle_scene_node->particle_taggroup_id,
+							ctx->verse.particle_scene_node->particle_frame_tag_id,
+							VRS_VALUE_TYPE_UINT16,
+							1,
+							&frame);
+				}
+				else if(data_type == VRS_VALUE_TYPE_UINT16 &&
+						custom_type == SENDER_COUNT)
+				{
 					scene_node->sender_count_tag_id = tag_id;
 				}
 			}
@@ -286,11 +405,20 @@ static void cb_receive_tag_create(const uint8 session_id,
 			sender_node = (struct ParticleSenderNode*)node;
 
 			if(sender_node->particle_taggroup_id == taggroup_id) {
-				if(data_type == VRS_VALUE_TYPE_REAL32 && count == 3 && custom_type == POSITION) {
+				if(data_type == VRS_VALUE_TYPE_REAL32 &&
+						count == 3 &&
+						custom_type == POSITION)
+				{
 					sender_node->pos_tag_id = tag_id;
-				} else if(data_type == VRS_VALUE_TYPE_UINT16 && custom_type == PARTICLE_COUNT) {
+				}
+				else if(data_type == VRS_VALUE_TYPE_UINT16 &&
+						custom_type == PARTICLE_COUNT)
+				{
 					sender_node->count_tag_id = tag_id;
-				} else if(data_type == VRS_VALUE_TYPE_UINT16 && custom_type == SENDER_ID) {
+				}
+				else if(data_type == VRS_VALUE_TYPE_UINT16 &&
+						custom_type == SENDER_ID)
+				{
 					sender_node->sender_id_tag_id = tag_id;
 				}
 			}
@@ -299,9 +427,14 @@ static void cb_receive_tag_create(const uint8 session_id,
 			particle_node = (struct ParticleNode*)node;
 
 			if(particle_node->particle_taggroup_id == taggroup_id) {
-				if(data_type == VRS_VALUE_TYPE_REAL32 && count == 3 && custom_type == POSITION) {
+				if(data_type == VRS_VALUE_TYPE_REAL32 &&
+						count == 3 &&
+						custom_type == POSITION)
+				{
 					particle_node->pos_tag_id = tag_id;
-				} else if(data_type == VRS_VALUE_TYPE_UINT16 && custom_type == PARTICLE_ID) {
+				} else if(data_type == VRS_VALUE_TYPE_UINT16 &&
+						custom_type == PARTICLE_ID)
+				{
 					particle_node->particle_id_tag_id = tag_id;
 				}
 			}
@@ -346,7 +479,8 @@ static void cb_receive_taggroup_create(const uint8 session_id,
 			{
 				scene_node->particle_taggroup_id = taggroup_id;
 				/* Subscribe to this tag group */
-				vrs_send_taggroup_subscribe(session_id, VRS_DEFAULT_PRIORITY, node_id, taggroup_id, 0, 0);
+				vrs_send_taggroup_subscribe(session_id, VRS_DEFAULT_PRIORITY,
+						node_id, taggroup_id, 0, 0);
 			}
 			break;
 		case PARTICLE_SENDER_NODE:
@@ -355,7 +489,8 @@ static void cb_receive_taggroup_create(const uint8 session_id,
 			if(custom_type == PARTICLE_SENDER) {
 				sender_node->particle_taggroup_id = taggroup_id;
 				/* Subscribe to this tag group */
-				vrs_send_taggroup_subscribe(session_id, VRS_DEFAULT_PRIORITY, node_id, taggroup_id, 0, 0);
+				vrs_send_taggroup_subscribe(session_id, VRS_DEFAULT_PRIORITY,
+						node_id, taggroup_id, 0, 0);
 			}
 			break;
 		case PARTICLE_NODE:
@@ -364,7 +499,8 @@ static void cb_receive_taggroup_create(const uint8 session_id,
 			if(custom_type == PARTICLE) {
 				particle_node->particle_taggroup_id = taggroup_id;
 				/* Subscribe to this tag group */
-				vrs_send_taggroup_subscribe(session_id, VRS_DEFAULT_PRIORITY, node_id, taggroup_id, 0, 0);
+				vrs_send_taggroup_subscribe(session_id, VRS_DEFAULT_PRIORITY,
+						node_id, taggroup_id, 0, 0);
 			}
 			break;
 		}
@@ -570,8 +706,10 @@ static void register_cb_func_particle_receiver(void)
 	vrs_register_receive_taggroup_destroy(cb_receive_taggroup_destroy);
 	vrs_register_receive_tag_create(cb_receive_tag_create);
 	vrs_register_receive_tag_destroy(cb_receive_tag_destroy);
-
 	vrs_register_receive_tag_set_value(cb_receive_tag_set_value);
+
+	vrs_register_receive_layer_create(cb_receive_layer_create);
+	vrs_register_receive_layer_set_value(cb_receive_layer_set_value);
 }
 
 void *particle_receiver_loop(void *arg)
