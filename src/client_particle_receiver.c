@@ -84,6 +84,7 @@ static void cb_receive_layer_set_value(const uint8_t session_id,
 				__FUNCTION__, session_id, node_id, layer_id, item_id, data_type, count, value);
 
 	node = lu_find(ctx->verse.lu_table, node_id);
+
 	if(node != NULL) {
 		sender_node = (struct ParticleSenderNode*)node;
 		sender = sender_node->sender;
@@ -100,26 +101,28 @@ static void cb_receive_layer_set_value(const uint8_t session_id,
 
 		if(ref_state != NULL) {
 			struct ReceivedParticleState *rec_state;
+			struct ReceivedParticle *rec_particle;
 
 			pthread_mutex_lock(&sender_node->sender->rec_pd->mutex);
 
 			rec_state = &sender->rec_pd->received_particles->received_states[ref_state->frame];
+			rec_particle = &sender->rec_pd->received_particles[item_id];
 
 			/* Set up first, last and current received state */
-			if(sender->rec_pd->received_particles[item_id].first_received_state == NULL) {
-				sender->rec_pd->received_particles[item_id].first_received_state = rec_state;
-				sender->rec_pd->received_particles[item_id].last_received_state = rec_state;
+			if(rec_particle->first_received_state == NULL) {
+				rec_particle->first_received_state = rec_state;
+				rec_particle->last_received_state = rec_state;
 			} else {
-				if(sender->rec_pd->received_particles[item_id].first_received_state->ref_particle_state->frame > rec_state->ref_particle_state->frame) {
-					sender->rec_pd->received_particles[item_id].first_received_state = rec_state;
+				if(rec_particle->first_received_state->ref_particle_state->frame > rec_state->ref_particle_state->frame) {
+					rec_particle->first_received_state = rec_state;
 				}
-				if(sender->rec_pd->received_particles[item_id].last_received_state->ref_particle_state->frame < rec_state->ref_particle_state->frame) {
-					sender->rec_pd->received_particles[item_id].last_received_state = rec_state;
+				if(rec_particle->last_received_state->ref_particle_state->frame < rec_state->ref_particle_state->frame) {
+					rec_particle->last_received_state = rec_state;
 				}
 			}
 
 			/* This state is the current received */
-			sender->rec_pd->received_particles[item_id].current_received_state = rec_state;
+			rec_particle->current_received_state = rec_state;
 
 			/* At this frame was particle received */
 			rec_state->received_frame = current_frame;
