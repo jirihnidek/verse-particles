@@ -85,7 +85,7 @@ static void cb_receive_layer_set_value(const uint8_t session_id,
 
 	node = lu_find(ctx->verse.lu_table, node_id);
 
-	if(node != NULL) {
+	if(node != NULL && node->type == PARTICLE_SENDER_NODE) {
 		sender_node = (struct ParticleSenderNode*)node;
 		sender = sender_node->sender;
 
@@ -99,13 +99,14 @@ static void cb_receive_layer_set_value(const uint8_t session_id,
 				sender_node->sender->rec_pd->rec_frame,
 				(real32*)value);
 
+		/* Was reference state found? */
 		if(ref_state != NULL) {
 			struct ReceivedParticleState *rec_state;
 			struct ReceivedParticle *rec_particle;
 
 			pthread_mutex_lock(&sender_node->sender->rec_pd->mutex);
 
-			rec_state = &sender->rec_pd->received_particles->received_states[ref_state->frame];
+			rec_state = &sender->rec_pd->received_particles[item_id].received_states[ref_state->frame];
 			rec_particle = &sender->rec_pd->received_particles[item_id];
 
 			/* Set up first, last and current received state */
@@ -142,6 +143,8 @@ static void cb_receive_layer_set_value(const uint8_t session_id,
 		} else {
 			printf("ERROR: Reference particle state not found\n");
 		}
+	} else {
+		printf("ERROR: Sender node not found\n");
 	}
 }
 
