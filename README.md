@@ -10,13 +10,18 @@ Video with example could be found at YouTube:
 
 http://www.youtube.com/watch?v=IJm-Inp9kTI
 
+License
+=======
+
+The source code of Verse Particle is licensed under BSD license. For more details look at file LICENSE.
+
 Compile
--------
+=======
 
 It is possible to compile at Linux. Porting to other UNIX platform is probably possible.
 
 Requirements
-============
+------------
 
  * GCC: http://gcc.gnu.org/ or Clang: http://clang.llvm.org/ 
  * CMake http://www.cmake.org/
@@ -25,7 +30,7 @@ Requirements
  * GLUT: http://www.opengl.org/resources/libraries/glut/
 
 Building
-========
+--------
 
 To build verse_particle binary you have to type following commands:
 
@@ -36,8 +41,8 @@ To build verse_particle binary you have to type following commands:
 
 There isn't any step for installing application to the system, because this application is only for testing purpose.
 
-Using
------
+Usage
+=====
 
 To run verse_particle binary you have to do several steps. First of all, you have to have Verse server running.
 Then you have to start one verse_particle in sender mode:
@@ -52,7 +57,7 @@ You can also run sender and sender at virtualized server and receiver at host. T
 that could be used for modification of links between virtualized machine and host and vica verse.
 
 Contacts
---------
+========
 
  * E-mail: jiri.hnidek@tul.cz
  * Phone: +420 485 35 3695
