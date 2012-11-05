@@ -52,11 +52,9 @@ struct ParticleSceneNode *create_particle_scene_node(uint32 node_id)
 
 	if(node != NULL) {
 		node->type = PARTICLE_SCENE_NODE;
-		node->particle_frame_tag_id = -1;
 		node->node_id = node_id;
 		node->particle_taggroup_id = -1;
 		node->sender_count_tag_id = -1;
-		node->particle_frame_tag_id = -1;
 		node->senders.first = NULL;
 		node->senders.last = NULL;
 	}

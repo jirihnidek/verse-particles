@@ -107,6 +107,8 @@ static void display_sender(struct Particle_Sender *sender)
 	glVertex3f(pos[0]-1, pos[1]+4, pos[2]+2-1);
 	glEnd();
 
+	/* TODO: dislay frame of sender and number of particle */
+
 	/* Fake shadow of plane emiting particles */
 	glLineWidth(2.0);
 	glBegin(GL_LINES);
@@ -140,7 +142,7 @@ static void display_text_info(void)
 	static struct timeval tv, last;
 	static float sfps = 0;
 	float fps;
-	int16 frame, received_frame;
+	/* int16 frame, received_frame */
 	int tmp;
 	char str_frame[MAX_STR_LEN];
 	short x_pos = 0, y_pos = 0;
@@ -160,6 +162,7 @@ static void display_text_info(void)
 	str_frame[tmp] = '\0';
 	display_string_2d(str_frame, x_pos, y_pos, white_col);
 
+#if 0
 	/* Draw frame number */
 	y_pos += 15;
 	pthread_mutex_lock(&ctx->timer->mutex);
@@ -173,6 +176,7 @@ static void display_text_info(void)
 	pthread_mutex_unlock(&ctx->timer->mutex);
 	str_frame[tmp] = '\0';
 	display_string_2d(str_frame, x_pos, y_pos, white_col);
+#endif
 
 	/* Compute value of FPS */
 	if(screen_counter==0) {
@@ -631,35 +635,6 @@ void glut_on_keyboard(unsigned char key, int x, int y)
 			break;
 		case 'q':
 			vrs_send_connect_terminate(ctx->verse.session_id);
-			break;
-		case 'r':
-			pthread_mutex_lock(&ctx->timer->mutex);
-			if(ctx->timer->tot_frame > ctx->pd->frame_count) {
-				if(ctx->verse.particle_scene_node != NULL) {
-					struct Particle_Sender *sender;
-					int16 frame = -25;
-
-					printf("Try to reset frame\n");
-					vrs_send_tag_set_value(ctx->verse.session_id,
-							VRS_DEFAULT_PRIORITY,
-							ctx->verse.particle_scene_node->node_id,
-							ctx->verse.particle_scene_node->particle_taggroup_id,
-							ctx->verse.particle_scene_node->particle_frame_tag_id,
-							VRS_VALUE_TYPE_UINT16,
-							1,
-							&frame);
-					ctx->timer->run = 0;
-					ctx->timer->frame = -1;
-					ctx->timer->tot_frame = -1;
-
-					sender = ctx->senders.first;
-					while(sender != NULL) {
-						reset_received_particle_data(sender->rec_pd);
-						sender = sender->next;
-					}
-				}
-			}
-			pthread_mutex_unlock(&ctx->timer->mutex);
 			break;
 		case 'f':
 			if(ctx->display->window.fullscreen == 0) {

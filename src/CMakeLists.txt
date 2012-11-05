@@ -9,7 +9,6 @@ set (verse_particles_src
 		math_lib.c
 		particle_scene_node.c
 		particle_sender_node.c
-		particle_node.c
 		timer.c
 		sender.c)
 

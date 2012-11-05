@@ -40,7 +40,6 @@
 /* Custom types of nodes */
 #define PARTICLE_SCENE_NODE		100
 #define PARTICLE_SENDER_NODE	101
-#define PARTICLE_NODE			102
 
 /* Custom types of taggroups */
 #define PARTICLE_SCENE			200

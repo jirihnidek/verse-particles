@@ -54,6 +54,7 @@ struct ParticleSenderNode *create_particle_sender_node(struct ParticleSceneNode 
 		node->type = PARTICLE_SENDER_NODE;
 		node->count_tag_id = -1;
 		node->particle_taggroup_id = -1;
+		node->particle_frame_tag_id = -1;
 		node->pos_tag_id = -1;
 		node->sender_id_tag_id = -1;
 		node->scene = scene_node;

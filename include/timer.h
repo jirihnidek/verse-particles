@@ -41,6 +41,9 @@
 
 #define ONE_SECOND		1000000
 
+#define START_TOT_FRAME	0
+#define END_TOT_FRAME	300
+
 typedef struct Timer {
 	pthread_mutex_t	mutex;
 	int16			frame;

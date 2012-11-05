@@ -44,7 +44,6 @@
 
 #include "particle_scene_node.h"
 #include "particle_sender_node.h"
-#include "particle_node.h"
 #include "node.h"
 #include "client.h"
 #include "lu_table.h"
@@ -175,11 +174,10 @@ static void cb_receive_layer_create(const uint8 session_id,
 	}
 }
 
-static void _frame_received(struct ParticleSceneNode *scene_node,
+static void _frame_received(struct ParticleSenderNode *sender_node,
 		int16 value)
 {
-	struct ParticleSenderNode *sender_node;
-
+	/* TODO: Be carefull here */
 	if(value < 0) {
 		pthread_mutex_lock(&ctx->timer->mutex);
 		if(ctx->timer->run == 0) {
@@ -191,111 +189,16 @@ static void _frame_received(struct ParticleSceneNode *scene_node,
 		/* TODO: use this for synchronization of time */
 	}
 
-	scene_node->received_frame = value;
+	sender_node->received_frame = value;
 
-	sender_node = scene_node->senders.first;
-	while(sender_node != NULL) {
+	pthread_mutex_lock(&ctx->timer->mutex);
+	ctx->timer->frame = value;
+	pthread_mutex_unlock(&ctx->timer->mutex);
+
+	if(sender_node->sender != NULL) {
 		pthread_mutex_lock(&sender_node->sender->rec_pd->mutex);
 		sender_node->sender->rec_pd->rec_frame = value;
 		pthread_mutex_unlock(&sender_node->sender->rec_pd->mutex);
-		sender_node = sender_node->next;
-	}
-}
-
-static void _position_received(struct ParticleNode *particle_node,
-		real32 *value)
-{
-	struct ParticleSenderNode *sender_node;
-	struct RefParticleState *ref_state;
-	uint16 current_frame;
-
-	sender_node = particle_node->sender;
-
-	pthread_mutex_lock(&ctx->timer->mutex);
-	current_frame = ctx->timer->frame;
-	pthread_mutex_unlock(&ctx->timer->mutex);
-
-	if(particle_node->ref_particle != NULL &&
-			particle_node->rec_particle != NULL)
-	{
-		/* Find reference state */
-		ref_state = find_ref_particle_state(ctx->pd,
-				particle_node->ref_particle,
-				sender_node->sender->rec_pd->rec_frame,
-				(real32*)value);
-
-		if(ref_state != NULL) {
-			struct ReceivedParticleState *rec_state;
-
-			pthread_mutex_lock(&sender_node->sender->rec_pd->mutex);
-
-			rec_state = &particle_node->rec_particle->received_states[ref_state->frame];
-
-			/* Set up first, last and current received state */
-			if(particle_node->rec_particle->first_received_state == NULL) {
-				particle_node->rec_particle->first_received_state = rec_state;
-				particle_node->rec_particle->last_received_state = rec_state;
-			} else {
-				if(particle_node->rec_particle->first_received_state->ref_particle_state->frame > rec_state->ref_particle_state->frame) {
-					particle_node->rec_particle->first_received_state = rec_state;
-				}
-				if(particle_node->rec_particle->last_received_state->ref_particle_state->frame < rec_state->ref_particle_state->frame) {
-					particle_node->rec_particle->last_received_state = rec_state;
-				}
-			}
-
-			/* This state is the current received */
-			particle_node->rec_particle->current_received_state = rec_state;
-
-			/* At this frame was particle received */
-			rec_state->received_frame = current_frame;
-			/* Set up delay of receiving */
-			rec_state->delay = current_frame - ref_state->frame;
-
-			/* Set up state according delay */
-			if(rec_state->delay == 0 || rec_state->delay == 1) {
-				rec_state->state = RECEIVED_STATE_INTIME;
-			} else if( rec_state->delay > 1) {
-				rec_state->state = RECEIVED_STATE_DELAY;
-			} else {
-				rec_state->state = RECEIVED_STATE_AHEAD;
-			}
-
-			pthread_mutex_unlock(&sender_node->sender->rec_pd->mutex);
-		} else {
-			printf("ERROR: Reference particle state not found\n");
-		}
-	} else {
-		printf("ERROR: Reference particle state not found\n");
-	}
-}
-
-static void _id_received(uint8 session_id,
-		struct ParticleNode *particle_node,
-		uint16 value)
-{
-	struct ParticleSenderNode *sender_node = particle_node->sender;
-
-	if(value < ctx->pd->particle_count) {
-		particle_node->ref_particle = &ctx->pd->particles[value];
-		particle_node->rec_particle = &sender_node->sender->rec_pd->received_particles[value];
-
-		if(value == (ctx->pd->particle_count-1)) {
-			int16 frame = -25;
-			printf(">>>Starting animation<<<<\n");
-			/* Send frame, when receiver received all needed data */
-			vrs_send_tag_set_value(session_id,
-					VRS_DEFAULT_PRIORITY,
-					ctx->verse.particle_scene_node->node_id,
-					ctx->verse.particle_scene_node->particle_taggroup_id,
-					ctx->verse.particle_scene_node->particle_frame_tag_id,
-					VRS_VALUE_TYPE_UINT16,
-					1,
-					&frame);
-		}
-
-	} else {
-		printf("ERROR: Bad particle ID: %d\n", value);
 	}
 }
 
@@ -308,8 +211,9 @@ static void cb_receive_tag_set_value(const uint8 session_id,
 		const void *value)
 {
 	struct Node *node;
-	struct ParticleSceneNode *scene_node;
-	struct ParticleNode *particle_node;
+	/* struct ParticleSceneNode *scene_node; */
+	/* struct ParticleNode *particle_node; */
+	struct ParticleSenderNode *sender_node;
 
 	printf("%s() session_id: %u, node_id: %u, taggroup_id: %u, tag_id: %u, data_type: %d, count: %d, value: %p\n",
 				__FUNCTION__, session_id, node_id, taggroup_id, tag_id, data_type, count, value);
@@ -319,29 +223,15 @@ static void cb_receive_tag_set_value(const uint8 session_id,
 	if(node != NULL) {
 		switch(node->type) {
 		case PARTICLE_SCENE_NODE:
-			scene_node = (struct ParticleSceneNode *)node;
+			/* scene_node = (struct ParticleSceneNode *)node; */
+
+		case PARTICLE_SENDER_NODE:
+			sender_node = (struct ParticleSenderNode *)node;
 
 			/* Was current frame received? */
-			if(scene_node->particle_taggroup_id == taggroup_id) {
-				if(scene_node->particle_frame_tag_id == tag_id) {
-					_frame_received(scene_node, *(int16*)value);
-				}
-			}
-			break;
-		case PARTICLE_NODE:
-			particle_node = (struct ParticleNode*)node;
-
-			/* Was current position received? */
-			if(particle_node->particle_taggroup_id == taggroup_id) {
-				if(particle_node->pos_tag_id == tag_id) {
-					_position_received(particle_node, (real32*)value);
-				}
-			}
-
-			/* Was particle ID received? */
-			if(particle_node->particle_taggroup_id == taggroup_id) {
-				if(particle_node->particle_id_tag_id == tag_id) {
-					_id_received(session_id, particle_node, *(uint16*)value);
+			if(sender_node->particle_taggroup_id == taggroup_id) {
+				if(sender_node->particle_frame_tag_id == tag_id) {
+					_frame_received(sender_node, *(int16*)value);
 				}
 			}
 			break;
@@ -371,7 +261,7 @@ static void cb_receive_tag_create(const uint8 session_id,
 	struct Node *node;
 	struct ParticleSceneNode *scene_node;
 	struct ParticleSenderNode *sender_node;
-	struct ParticleNode *particle_node;
+	/* struct ParticleNode *particle_node; */
 
 	printf("%s() session_id: %d, node_id: %d, taggroup_id: %d, tag_id: %d, data_type: %d, count: %d, custom_type: %d\n",
 				__FUNCTION__, session_id, node_id, taggroup_id, tag_id, data_type, count, custom_type);
@@ -385,22 +275,6 @@ static void cb_receive_tag_create(const uint8 session_id,
 
 			if(scene_node->particle_taggroup_id == taggroup_id) {
 				if(data_type == VRS_VALUE_TYPE_UINT16 &&
-						custom_type == PARTICLE_FRAME)
-				{
-					int16 frame = -25;
-					scene_node->particle_frame_tag_id = tag_id;
-					printf(">>>Starting animation<<<<\n");
-					/* Send frame, when receiver received all needed data */
-					vrs_send_tag_set_value(session_id,
-							VRS_DEFAULT_PRIORITY,
-							ctx->verse.particle_scene_node->node_id,
-							ctx->verse.particle_scene_node->particle_taggroup_id,
-							ctx->verse.particle_scene_node->particle_frame_tag_id,
-							VRS_VALUE_TYPE_UINT16,
-							1,
-							&frame);
-				}
-				else if(data_type == VRS_VALUE_TYPE_UINT16 &&
 						custom_type == SENDER_COUNT)
 				{
 					scene_node->sender_count_tag_id = tag_id;
@@ -410,8 +284,14 @@ static void cb_receive_tag_create(const uint8 session_id,
 		case PARTICLE_SENDER_NODE:
 			sender_node = (struct ParticleSenderNode*)node;
 
-			if(sender_node->particle_taggroup_id == taggroup_id) {
-				if(data_type == VRS_VALUE_TYPE_REAL32 &&
+			if(sender_node->particle_taggroup_id == taggroup_id)
+			{
+				if(data_type == VRS_VALUE_TYPE_UINT16 &&
+						custom_type == PARTICLE_FRAME)
+				{
+					sender_node->particle_frame_tag_id = tag_id;
+				}
+				else if(data_type == VRS_VALUE_TYPE_REAL32 &&
 						count == 3 &&
 						custom_type == POSITION)
 				{
@@ -429,6 +309,7 @@ static void cb_receive_tag_create(const uint8 session_id,
 				}
 			}
 			break;
+#if 0
 		case PARTICLE_NODE:
 			particle_node = (struct ParticleNode*)node;
 
@@ -445,6 +326,7 @@ static void cb_receive_tag_create(const uint8 session_id,
 				}
 			}
 			break;
+#endif
 		}
 	} else {
 		printf("ERROR: node not found\n");
@@ -468,7 +350,6 @@ static void cb_receive_taggroup_create(const uint8 session_id,
 	struct Node *node;
 	struct ParticleSceneNode *scene_node;
 	struct ParticleSenderNode *sender_node;
-	struct ParticleNode *particle_node;
 
 	printf("%s() session_id: %d, node_id: %d, taggroup_id: %d, name: %d\n",
 				__FUNCTION__, session_id, node_id, taggroup_id, custom_type);
@@ -499,16 +380,6 @@ static void cb_receive_taggroup_create(const uint8 session_id,
 						node_id, taggroup_id, 0, 0);
 			}
 			break;
-		case PARTICLE_NODE:
-			particle_node = (struct ParticleNode*)node;
-
-			if(custom_type == PARTICLE) {
-				particle_node->particle_taggroup_id = taggroup_id;
-				/* Subscribe to this tag group */
-				vrs_send_taggroup_subscribe(session_id, VRS_DEFAULT_PRIORITY,
-						node_id, taggroup_id, 0, 0);
-			}
-			break;
 		}
 	} else {
 		printf("ERROR: node not found\n");
@@ -522,8 +393,6 @@ static void cb_receive_node_create(const uint8 session_id,
 		const uint16 user_id,
 		const uint16 custom_type)
 {
-	struct Node *node;
-
 	printf("%s() session_id: %d, node_id: %d, parent_id: %d, user_id: %d, custom_type: %d\n",
 			__FUNCTION__, session_id, node_id, parent_id, user_id, custom_type);
 
@@ -573,23 +442,6 @@ static void cb_receive_node_create(const uint8 session_id,
 			v_list_add_tail(&ctx->verse.particle_scene_node->senders, sender_node);
 
 			vrs_send_node_subscribe(session_id, VRS_DEFAULT_PRIORITY, node_id, 0);
-		}
-		break;
-	case PARTICLE_NODE:
-		node = lu_find(ctx->verse.lu_table, parent_id);
-
-		if(node!=NULL) {
-			struct ParticleSenderNode *sender_node = (struct ParticleSenderNode*)node;
-			if(v_list_count_items(&sender_node->particles) < ctx->pd->particle_count) {
-				struct ParticleNode *particle_node = create_particle_node(sender_node, node_id);
-
-				/* Add node to lookup table*/
-				lu_add_item(ctx->verse.lu_table, node_id, particle_node);
-
-				v_list_add_tail(&sender_node->particles, particle_node);
-
-				vrs_send_node_subscribe(session_id, VRS_DEFAULT_PRIORITY, node_id, 0);
-			}
 		}
 		break;
 	}

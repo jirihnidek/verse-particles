@@ -56,12 +56,10 @@ typedef struct ParticleSceneNode {
 	struct ParticleSceneNode	*prev, *next;
 	uint8						type;
 	uint32						node_id;
-	uint16						particle_taggroup_id;
-	uint16						particle_frame_tag_id;
-	int16						received_frame;
-	uint16						sender_count_tag_id;
-	int16						particle_tag_id;
-	struct VListBase			senders;
+	uint16						particle_taggroup_id;	/* ID of TagGroup with important informations */
+	uint16						sender_count_tag_id;	/* ID of Tag containing number of senders */
+	int16						particle_tag_id;		/* ?? */
+	struct VListBase			senders;				/* Linked list of senders */
 } ParticleSceneNode;
 
 struct ParticleSceneNode *create_particle_scene_node(uint32 node_id);

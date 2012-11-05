@@ -52,12 +52,14 @@ typedef struct ParticleSenderNode {
 	struct ParticleSenderNode	*prev, *next;
 	uint8						type;
 	uint32						node_id;
-	uint16						particle_taggroup_id;
-	uint16						pos_tag_id;
-	uint16						count_tag_id;
-	uint16						sender_id_tag_id;
-	uint16						particle_layer_id;
-	struct VListBase			particles;
+	uint16						particle_taggroup_id;	/* ID of TagGroup with important informations */
+	uint16						particle_frame_tag_id;	/* ID of Tag with frame */
+	int16						received_frame;			/* Last received frame */
+	uint16						pos_tag_id;				/* ID of Tag with sender position */
+	uint16						count_tag_id;			/* ID of Tag containing number of particles */
+	uint16						sender_id_tag_id;		/* ID of Tag containing ID of sender */
+	uint16						particle_layer_id;		/* ID of Layer containing positions fo particles */
+	struct VListBase			particles;				/* Linked list with particles */
 	struct ParticleSceneNode	*scene;
 	struct Particle_Sender		*sender;
 } ParticleSenderNode;
