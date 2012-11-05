@@ -200,7 +200,7 @@ static void cb_receive_tag_create(const uint8 session_id,
 					pthread_mutex_lock(&ctx->timer->mutex);
 					if(ctx->timer->run == 0) {
 						ctx->timer->run = 1;
-						ctx->timer->tot_frame = START_TOT_FRAME;
+						ctx->timer->tot_frame = -25;
 					}
 					pthread_mutex_unlock(&ctx->timer->mutex);
 				}
@@ -516,8 +516,8 @@ static void verse_send_data(void)
 	if(ctx->timer->run == 1) {
 
 		/* Send position for current frame */
-		if(ctx->timer->tot_frame >=0 &&
-				ctx->timer->tot_frame < ctx->pd->frame_count)
+		if(ctx->timer->frame >=0 &&
+				ctx->timer->frame < ctx->pd->frame_count)
 		{
 			struct ParticleSceneNode *scene_node = ctx->verse.particle_scene_node;
 			struct ParticleSenderNode *sender_node;
@@ -531,7 +531,7 @@ static void verse_send_data(void)
 				/* TODO: add here check, if this is sender of this client */
 
 				/* Send current frame */
-				if(ctx->timer->tot_frame < ctx->pd->frame_count) {
+				if(ctx->timer->frame < ctx->pd->frame_count) {
 					vrs_send_tag_set_value(ctx->verse.session_id,
 							VRS_DEFAULT_PRIORITY,
 							sender_node->node_id,
@@ -539,7 +539,7 @@ static void verse_send_data(void)
 							sender_node->particle_frame_tag_id,
 							VRS_VALUE_TYPE_UINT16,
 							1,
-							&ctx->timer->tot_frame);
+							&ctx->timer->frame);
 				}
 
 				/* For all particles of sender ... */
@@ -575,7 +575,8 @@ int particle_sender_loop(struct Client_CTX *ctx_)
 
 	register_cb_func_particle_sender();
 
-	if((ret = vrs_send_connect_request(ctx->verse.server_name, "12345", VRS_DGRAM_SEC_NONE ,&ctx->verse.session_id))!=VRS_SUCCESS) {
+	if((ret = vrs_send_connect_request(ctx->verse.server_name, "12345",
+			VRS_DGRAM_SEC_NONE ,&ctx->verse.session_id))!=VRS_SUCCESS) {
 		printf("ERROR: %s\n", vrs_strerror(ret));
 		return 0;
 	}

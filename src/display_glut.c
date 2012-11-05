@@ -142,7 +142,6 @@ static void display_text_info(void)
 	static struct timeval tv, last;
 	static float sfps = 0;
 	float fps;
-	/* int16 frame, received_frame */
 	int tmp;
 	char str_frame[MAX_STR_LEN];
 	short x_pos = 0, y_pos = 0;
@@ -152,31 +151,19 @@ static void display_text_info(void)
 
 	/* Draw help */
 	y_pos += 15;
-	if(ctx->timer->tot_frame < ctx->pd->frame_count) {
-		tmp = snprintf(str_frame, MAX_STR_LEN-1,
-				"Q: Quit, ESC: Force Quit, F: Fullscreen, C: Cycle visual style, LMB: Pan, RMB: Move, MMB: Zoom");
-	} else {
-		tmp = snprintf(str_frame, MAX_STR_LEN-1,
-				"Q: Quit, ESC: Force Quit, F: Fullscreen, C: Cycle visual style, R: Reset, LMB: Pan, RMB: Move, MMB: Zoom");
-	}
+	tmp = snprintf(str_frame, MAX_STR_LEN-1,
+			"Q: Quit, ESC: Force Quit, F: Fullscreen, C: Cycle visual style, LMB: Pan, RMB: Move, MMB: Zoom");
 	str_frame[tmp] = '\0';
 	display_string_2d(str_frame, x_pos, y_pos, white_col);
 
-#if 0
 	/* Draw frame number */
 	y_pos += 15;
 	pthread_mutex_lock(&ctx->timer->mutex);
-	if(ctx->verse.particle_scene_node != NULL) {
-		received_frame = ctx->verse.particle_scene_node->received_frame;
-	} else {
-		received_frame = -1;
-	}
-	frame = (ctx->timer->tot_frame < ctx->pd->frame_count) ? ctx->timer->tot_frame : ctx->pd->frame_count-1;
-	tmp = snprintf(str_frame, MAX_STR_LEN-1, "Frame: %d (%d)", frame, received_frame);
+	tmp = snprintf(str_frame, MAX_STR_LEN-1, "Frame: %d", ctx->timer->frame);
 	pthread_mutex_unlock(&ctx->timer->mutex);
 	str_frame[tmp] = '\0';
 	display_string_2d(str_frame, x_pos, y_pos, white_col);
-#endif
+
 
 	/* Compute value of FPS */
 	if(screen_counter==0) {

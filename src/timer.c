@@ -120,16 +120,11 @@ void *timer_loop(void *arg)
 				ctx->timer->tot_frame += 1 + (-delay)/(ONE_SECOND/ctx->verse.fps);
 			}
 
-			/* Reset tot_frame, when it is too big */
-			ctx->timer->tot_frame = (ctx->timer->tot_frame > END_TOT_FRAME) ? 0 : ctx->timer->tot_frame;
-
 			/* Crop frame to be in limit:  <0, frame_count-1> */
 			if(ctx->timer->tot_frame < 0) {
 				ctx->timer->frame = 0;
-			} else if(ctx->timer->tot_frame >= ctx->pd->frame_count) {
-				ctx->timer->frame = ctx->pd->frame_count - 1;
 			} else {
-				ctx->timer->frame = ctx->timer->tot_frame;
+				ctx->timer->frame = ctx->timer->tot_frame % (ctx->pd->frame_count -1);
 			}
 		}
 

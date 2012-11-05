@@ -45,10 +45,10 @@
 #define END_TOT_FRAME	300
 
 typedef struct Timer {
-	pthread_mutex_t	mutex;
-	int16			frame;
-	int16			tot_frame;
-	uint8			run;
+	pthread_mutex_t	mutex;		/* Thread mutex used for synchronization */
+	int16			frame;		/* Frame that is inside of animation range */
+	int16			tot_frame;	/* Total frame of timer */
+	uint8			run;		/* Is animation running? */
 } Timer;
 
 struct Timer *create_timer(void);

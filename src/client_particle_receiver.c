@@ -178,22 +178,15 @@ static void _frame_received(struct ParticleSenderNode *sender_node,
 		int16 value)
 {
 	/* TODO: Be carefull here */
-	if(value < 0) {
-		pthread_mutex_lock(&ctx->timer->mutex);
-		if(ctx->timer->run == 0) {
-			ctx->timer->run = 1;
-			ctx->timer->tot_frame = value;
-		}
-		pthread_mutex_unlock(&ctx->timer->mutex);
-	} else {
-		/* TODO: use this for synchronization of time */
+	pthread_mutex_lock(&ctx->timer->mutex);
+	if(ctx->timer->run == 0) {
+		ctx->timer->run = 1;
+		ctx->timer->tot_frame = value;
+		ctx->timer->frame = value;
 	}
+	pthread_mutex_unlock(&ctx->timer->mutex);
 
 	sender_node->received_frame = value;
-
-	pthread_mutex_lock(&ctx->timer->mutex);
-	ctx->timer->frame = value;
-	pthread_mutex_unlock(&ctx->timer->mutex);
 
 	if(sender_node->sender != NULL) {
 		pthread_mutex_lock(&sender_node->sender->rec_pd->mutex);
