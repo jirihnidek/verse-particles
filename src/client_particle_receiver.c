@@ -88,9 +88,11 @@ static void cb_receive_layer_set_value(const uint8_t session_id,
 		sender_node = (struct ParticleSenderNode*)node;
 		sender = sender_node->sender;
 
-		pthread_mutex_lock(&ctx->timer->mutex);
-		current_frame = ctx->timer->frame;
-		pthread_mutex_unlock(&ctx->timer->mutex);
+		pthread_mutex_lock(&sender_node->sender->timer->mutex);
+		current_frame = sender_node->sender->timer->frame;
+		pthread_mutex_unlock(&sender_node->sender->timer->mutex);
+
+		pthread_mutex_lock(&sender_node->sender->rec_pd->mutex);
 
 		/* Find reference state */
 		ref_state = find_ref_particle_state(ctx->pd,
@@ -102,8 +104,6 @@ static void cb_receive_layer_set_value(const uint8_t session_id,
 		if(ref_state != NULL) {
 			struct ReceivedParticleState *rec_state;
 			struct ReceivedParticle *rec_particle;
-
-			pthread_mutex_lock(&sender_node->sender->rec_pd->mutex);
 
 			rec_state = &sender->rec_pd->received_particles[item_id].received_states[ref_state->frame];
 			rec_particle = &sender->rec_pd->received_particles[item_id];
@@ -138,10 +138,12 @@ static void cb_receive_layer_set_value(const uint8_t session_id,
 				rec_state->state = RECEIVED_STATE_AHEAD;
 			}
 
-			pthread_mutex_unlock(&sender_node->sender->rec_pd->mutex);
 		} else {
 			printf("ERROR: Reference particle state not found\n");
 		}
+
+		pthread_mutex_unlock(&sender_node->sender->rec_pd->mutex);
+
 	} else {
 		printf("ERROR: Sender node not found\n");
 	}
@@ -177,22 +179,18 @@ static void cb_receive_layer_create(const uint8 session_id,
 static void _frame_received(struct ParticleSenderNode *sender_node,
 		int16 value)
 {
-	/* TODO: Be carefull here */
-	pthread_mutex_lock(&ctx->timer->mutex);
-	if(ctx->timer->run == 0) {
-		ctx->timer->run = 1;
-		ctx->timer->tot_frame = value;
-		ctx->timer->frame = value;
+	/* Start timer, when first frame value is received */
+	pthread_mutex_lock(&sender_node->sender->timer->mutex);
+	if(sender_node->sender->timer->run == 0) {
+		sender_node->sender->timer->run = 1;
+		sender_node->sender->timer->tot_frame = value;
 	}
-	pthread_mutex_unlock(&ctx->timer->mutex);
+	pthread_mutex_unlock(&sender_node->sender->timer->mutex);
 
-	sender_node->received_frame = value;
-
-	if(sender_node->sender != NULL) {
-		pthread_mutex_lock(&sender_node->sender->rec_pd->mutex);
-		sender_node->sender->rec_pd->rec_frame = value;
-		pthread_mutex_unlock(&sender_node->sender->rec_pd->mutex);
-	}
+	/* Save received frame */
+	pthread_mutex_lock(&sender_node->sender->rec_pd->mutex);
+	sender_node->sender->rec_pd->rec_frame = value;
+	pthread_mutex_unlock(&sender_node->sender->rec_pd->mutex);
 }
 
 static void cb_receive_tag_set_value(const uint8 session_id,
@@ -218,6 +216,8 @@ static void cb_receive_tag_set_value(const uint8 session_id,
 		case PARTICLE_SCENE_NODE:
 			/* scene_node = (struct ParticleSceneNode *)node; */
 
+			/* TODO: do something useful here */
+			break;
 		case PARTICLE_SENDER_NODE:
 			sender_node = (struct ParticleSenderNode *)node;
 
@@ -344,7 +344,7 @@ static void cb_receive_taggroup_create(const uint8 session_id,
 	struct ParticleSceneNode *scene_node;
 	struct ParticleSenderNode *sender_node;
 
-	printf("%s() session_id: %d, node_id: %d, taggroup_id: %d, name: %d\n",
+	printf("%s() session_id: %d, node_id: %d, taggroup_id: %d, custom_type: %d\n",
 				__FUNCTION__, session_id, node_id, taggroup_id, custom_type);
 
 	node = lu_find(ctx->verse.lu_table, node_id);
@@ -425,8 +425,11 @@ static void cb_receive_node_create(const uint8 session_id,
 
 			/* Set up references */
 			if(sender != NULL) {
+				printf("Info: setting up references\n");
 				sender_node->sender = sender;
 				sender->sender_node = sender_node;
+			} else {
+				printf("Error: no remaining free sender\n");
 			}
 
 			/* Add node to lookup table*/

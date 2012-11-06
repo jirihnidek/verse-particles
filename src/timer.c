@@ -71,6 +71,7 @@ struct Timer *create_timer(void)
  */
 void *timer_loop(void *arg)
 {
+	struct Particle_Sender *sender;
 	struct timeval	current_tv, first_tv, expected_tv;
 	unsigned long	sec, usec, counter;
 	long 			delay;
@@ -108,27 +109,32 @@ void *timer_loop(void *arg)
 
 		usleep(delay);
 
-		pthread_mutex_lock(&ctx->timer->mutex);
+		for(sender = (struct Particle_Sender*)ctx->senders.first;
+				sender != NULL;
+				sender = sender->next)
+		{
+			pthread_mutex_lock(&sender->timer->mutex);
 
-		if(ctx->timer->run == 1) {
-			if(delay>0) {
-				ctx->timer->tot_frame++;
-			} else {
-				/* When packing/unpacking and sending/receiving of packet took
-				 * more then DELAY, then crop delay and change counter and
-				 * frame to corresponding values */
-				ctx->timer->tot_frame += 1 + (-delay)/(ONE_SECOND/ctx->verse.fps);
+			if(sender->timer->run == 1) {
+				if(delay>0) {
+					sender->timer->tot_frame++;
+				} else {
+					/* When packing/unpacking and sending/receiving of packet took
+					 * more then DELAY, then crop delay and change counter and
+					 * frame to corresponding values */
+					sender->timer->tot_frame += 1 + (-delay)/(ONE_SECOND/ctx->verse.fps);
+				}
+
+				/* Crop frame to be in limit:  <0, frame_count-1> */
+				if(sender->timer->tot_frame < 0) {
+					sender->timer->frame = 0;
+				} else {
+					sender->timer->frame = sender->timer->tot_frame % (ctx->pd->frame_count -1);
+				}
 			}
 
-			/* Crop frame to be in limit:  <0, frame_count-1> */
-			if(ctx->timer->tot_frame < 0) {
-				ctx->timer->frame = 0;
-			} else {
-				ctx->timer->frame = ctx->timer->tot_frame % (ctx->pd->frame_count -1);
-			}
+			pthread_mutex_unlock(&sender->timer->mutex);
 		}
-
-		pthread_mutex_unlock(&ctx->timer->mutex);
 
 		/*printf("frame: %d\n", ctx->timer->tot_frame);*/
 

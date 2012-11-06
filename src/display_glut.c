@@ -87,6 +87,15 @@ static void display_string_2d(char *string, int x, int y, const uint8 *col)
 	}
 }
 
+static void display_string_3d(char *string, float *pos, const uint8 *col)
+{
+	glColor3ubv(col);
+	glRasterPos3fv(pos);
+	while (*string) {
+		glutBitmapCharacter(GLUT_BITMAP_8_BY_13, *string++);
+	}
+}
+
 /**
  * \brief This function display sender
  */
@@ -143,7 +152,7 @@ static void display_text_info(void)
 	static float sfps = 0;
 	float fps;
 	int tmp;
-	char str_frame[MAX_STR_LEN];
+	char str_info[MAX_STR_LEN];
 	short x_pos = 0, y_pos = 0;
 
 	x_pos = 10;
@@ -151,11 +160,12 @@ static void display_text_info(void)
 
 	/* Draw help */
 	y_pos += 15;
-	tmp = snprintf(str_frame, MAX_STR_LEN-1,
+	tmp = snprintf(str_info, MAX_STR_LEN-1,
 			"Q: Quit, ESC: Force Quit, F: Fullscreen, C: Cycle visual style, LMB: Pan, RMB: Move, MMB: Zoom");
-	str_frame[tmp] = '\0';
-	display_string_2d(str_frame, x_pos, y_pos, white_col);
+	str_info[tmp] = '\0';
+	display_string_2d(str_info, x_pos, y_pos, white_col);
 
+#if 0
 	/* Draw frame number */
 	y_pos += 15;
 	pthread_mutex_lock(&ctx->timer->mutex);
@@ -163,7 +173,7 @@ static void display_text_info(void)
 	pthread_mutex_unlock(&ctx->timer->mutex);
 	str_frame[tmp] = '\0';
 	display_string_2d(str_frame, x_pos, y_pos, white_col);
-
+#endif
 
 	/* Compute value of FPS */
 	if(screen_counter==0) {
@@ -185,28 +195,28 @@ static void display_text_info(void)
 
 	/* Draw smoothed FPS */
 	y_pos += 15;
-	tmp = snprintf(str_frame, MAX_STR_LEN-1, "FPS: %5.1f", sfps);
-	str_frame[tmp] = '\0';
-	display_string_2d(str_frame, x_pos, y_pos, white_col);
+	tmp = snprintf(str_info, MAX_STR_LEN-1, "FPS: %5.1f", sfps);
+	str_info[tmp] = '\0';
+	display_string_2d(str_info, x_pos, y_pos, white_col);
 
 	/* Draw visual style */
 	y_pos += 15;
 	switch(ctx->display->visual_type) {
 	case VISUAL_SIMPLE:
-		tmp = snprintf(str_frame, MAX_STR_LEN-1, "Visualization mode: SIMPLE");
+		tmp = snprintf(str_info, MAX_STR_LEN-1, "Visualization mode: SIMPLE");
 		break;
 	case VISUAL_DOT:
-		tmp = snprintf(str_frame, MAX_STR_LEN-1, "Visualization mode: DOTS");
+		tmp = snprintf(str_info, MAX_STR_LEN-1, "Visualization mode: DOTS");
 		break;
 	case VISUAL_LINE:
-		tmp = snprintf(str_frame, MAX_STR_LEN-1, "Visualization mode: LINES");
+		tmp = snprintf(str_info, MAX_STR_LEN-1, "Visualization mode: LINES");
 		break;
 	case VISUAL_DOT_LINE:
-		tmp = snprintf(str_frame, MAX_STR_LEN-1, "Visualization mode: LINES & DOTS");
+		tmp = snprintf(str_info, MAX_STR_LEN-1, "Visualization mode: LINES & DOTS");
 		break;
 	}
-	str_frame[tmp] = '\0';
-	display_string_2d(str_frame, x_pos, y_pos, white_col);
+	str_info[tmp] = '\0';
+	display_string_2d(str_info, x_pos, y_pos, white_col);
 
 	screen_counter++;
 }
@@ -362,14 +372,40 @@ static void display_rec_particle_dots(struct ReceivedParticle *rec_particle,
  */
 static void display_rec_particle_system(struct Particle_Sender *sender)
 {
-	int i, current_frame;
+	int i, current_frame, received_frame;
+	int tmp;
+	char str_frame[MAX_STR_LEN];
+	float pos[3];
+
+	pos[0] = sender->pos[0];
+	pos[1] = sender->pos[1] + 4;
+	pos[2] = sender->pos[2] + 3.1;
 
 	pthread_mutex_lock(&sender->rec_pd->mutex);
 
+	/* Get received frame */
+	received_frame = sender->rec_pd->rec_frame;
+
 	/* Get current frame */
-	pthread_mutex_lock(&ctx->timer->mutex);
-	current_frame = ctx->timer->frame;
-	pthread_mutex_unlock(&ctx->timer->mutex);
+	pthread_mutex_lock(&sender->timer->mutex);
+	current_frame = sender->timer->frame;
+	pthread_mutex_unlock(&sender->timer->mutex);
+
+	/* Display current frame */
+	tmp = snprintf(str_frame, MAX_STR_LEN-1, "%d", current_frame);
+	str_frame[tmp] = '\0';
+	pos[0] -= 0.5;
+	display_string_3d(str_frame, pos, white_col);
+
+	/* Display received frame */
+	tmp = snprintf(str_frame, MAX_STR_LEN-1, "(%d)", received_frame);
+	str_frame[tmp] = '\0';
+	pos[0] += 1;
+	if(current_frame != received_frame) {
+		display_string_3d(str_frame, pos, yellow_col);
+	} else {
+		display_string_3d(str_frame, pos, white_col);
+	}
 
 	glTranslatef(sender->pos[0], sender->pos[1], sender->pos[2]);
 

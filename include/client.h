@@ -83,10 +83,10 @@ typedef struct Client_CTX {
 	struct VerseData			verse;
 	struct RefParticleData		*pd;
 	struct ParticleDisplay		*display;
-	struct Timer				*timer;
-	struct VListBase			senders;
-	uint32						sender_count;
-	pthread_t					timer_thread;
+	struct VListBase			senders;			/* List of particle senders that are in scene */
+	struct Particle_Sender		*sender;			/* Particle sender of this client that sends particles */
+	uint32						sender_count;		/* Cached number of particle senders */
+	pthread_t					timer_thread;		/* Thread with timer */
 	sem_t						timer_sem;
 	pthread_t					receiver_thread;
 } Client_CTX;

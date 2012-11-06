@@ -54,7 +54,6 @@ typedef struct ParticleSenderNode {
 	uint32						node_id;
 	uint16						particle_taggroup_id;	/* ID of TagGroup with important informations */
 	uint16						particle_frame_tag_id;	/* ID of Tag with frame */
-	int16						received_frame;			/* Last received frame */
 	uint16						pos_tag_id;				/* ID of Tag with sender position */
 	uint16						count_tag_id;			/* ID of Tag containing number of particles */
 	uint16						sender_id_tag_id;		/* ID of Tag containing ID of sender */

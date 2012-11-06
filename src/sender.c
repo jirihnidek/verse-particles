@@ -41,6 +41,7 @@
 
 #include "client.h"
 #include "sender.h"
+#include "time.h"
 #include "particle_data.h"
 
 /**
@@ -59,6 +60,8 @@ static struct Particle_Sender *create_particle_sender(real32 pos[3], uint16 id)
 		sender->id = id;
 
 		sender->sender_node = NULL;
+
+		sender->timer = create_timer();
 
 		sender->rec_pd = NULL;
 	}

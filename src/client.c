@@ -75,10 +75,10 @@ static void clean_client_ctx(struct Client_CTX *ctx)
 		ctx->verse.lu_table = NULL;
 	}
 
-	if(ctx->timer != NULL) {
-		pthread_mutex_destroy(&ctx->timer->mutex);
-		free(ctx->timer);
-		ctx->timer = NULL;
+	if(ctx->sender->timer != NULL) {
+		pthread_mutex_destroy(&ctx->sender->timer->mutex);
+		free(ctx->sender->timer);
+		ctx->sender->timer = NULL;
 	}
 
 	if(ctx->senders.first != NULL) {
@@ -115,7 +115,7 @@ static void init_client_ctx(struct Client_CTX *ctx)
 	ctx->verse.lu_table = NULL;
 	ctx->receiver_thread = 0;
 	ctx->timer_thread = 0;
-	ctx->timer = create_timer();
+	ctx->sender = NULL;
 	sem_init(&ctx->timer_sem, 0, 0);
 }
 

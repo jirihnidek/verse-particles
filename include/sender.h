@@ -51,6 +51,7 @@ typedef struct Particle_Sender {
 	struct Particle_Sender		*prev, *next;
 	struct ParticleSenderNode	*sender_node;
 	struct ReceivedParticleData	*rec_pd;
+	struct Timer				*timer;
 	uint16						id;
 	real32						pos[3];
 } Particle_Sender;

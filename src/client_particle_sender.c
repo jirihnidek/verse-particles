@@ -197,12 +197,12 @@ static void cb_receive_tag_create(const uint8 session_id,
 					/* Save ID of Tag containing Frame */
 					sender_node->particle_frame_tag_id = tag_id;
 					/* Start sending of particles */
-					pthread_mutex_lock(&ctx->timer->mutex);
-					if(ctx->timer->run == 0) {
-						ctx->timer->run = 1;
-						ctx->timer->tot_frame = -25;
+					pthread_mutex_lock(&sender_node->sender->timer->mutex);
+					if(sender_node->sender->timer->run == 0) {
+						sender_node->sender->timer->run = 1;
+						sender_node->sender->timer->tot_frame = -25;
 					}
-					pthread_mutex_unlock(&ctx->timer->mutex);
+					pthread_mutex_unlock(&sender_node->sender->timer->mutex);
 				}
 				else if(data_type == VRS_VALUE_TYPE_REAL32 &&
 						count == 3 &&
@@ -358,6 +358,11 @@ static void cb_receive_node_create(const uint8 session_id,
 					sender_node->sender = sender;
 				}
 
+				/* Is it sender node created by this client */
+				if(parent_id == ctx->verse.avatar_id) {
+					ctx->sender = sender;
+				}
+
 				/* Add node to lookup table*/
 				lu_add_item(ctx->verse.lu_table, node_id, sender_node);
 
@@ -511,13 +516,15 @@ static void register_cb_func_particle_sender(void)
  */
 static void verse_send_data(void)
 {
-	pthread_mutex_lock(&ctx->timer->mutex);
+	if(ctx->sender == NULL) return;
 
-	if(ctx->timer->run == 1) {
+	pthread_mutex_lock(&ctx->sender->timer->mutex);
+
+	if(ctx->sender->timer->run == 1) {
 
 		/* Send position for current frame */
-		if(ctx->timer->frame >=0 &&
-				ctx->timer->frame < ctx->pd->frame_count)
+		if(ctx->sender->timer->frame >=0 &&
+				ctx->sender->timer->frame < ctx->pd->frame_count)
 		{
 			struct ParticleSceneNode *scene_node = ctx->verse.particle_scene_node;
 			struct ParticleSenderNode *sender_node;
@@ -531,7 +538,7 @@ static void verse_send_data(void)
 				/* TODO: add here check, if this is sender of this client */
 
 				/* Send current frame */
-				if(ctx->timer->frame < ctx->pd->frame_count) {
+				if(ctx->sender->timer->frame < ctx->pd->frame_count) {
 					vrs_send_tag_set_value(ctx->verse.session_id,
 							VRS_DEFAULT_PRIORITY,
 							sender_node->node_id,
@@ -539,13 +546,13 @@ static void verse_send_data(void)
 							sender_node->particle_frame_tag_id,
 							VRS_VALUE_TYPE_UINT16,
 							1,
-							&ctx->timer->frame);
+							&ctx->sender->timer->frame);
 				}
 
 				/* For all particles of sender ... */
 				for(item_id = 0; item_id < ctx->pd->particle_count; item_id++) {
 					/* Send all active particles */
-					if(ctx->pd->particles[item_id].states[ctx->timer->frame].state == PARTICLE_STATE_ACTIVE) {
+					if(ctx->pd->particles[item_id].states[ctx->sender->timer->frame].state == PARTICLE_STATE_ACTIVE) {
 						vrs_send_layer_set_value(ctx->verse.session_id,
 								VRS_DEFAULT_PRIORITY,
 								sender_node->node_id,
@@ -553,14 +560,14 @@ static void verse_send_data(void)
 								item_id,
 								VRS_VALUE_TYPE_REAL32,
 								3,
-								ctx->pd->particles[item_id].states[ctx->timer->frame].pos);
+								ctx->pd->particles[item_id].states[ctx->sender->timer->frame].pos);
 					}
 				}
 			}
 		}
 	}
 
-	pthread_mutex_unlock(&ctx->timer->mutex);
+	pthread_mutex_unlock(&ctx->sender->timer->mutex);
 }
 
 int particle_sender_loop(struct Client_CTX *ctx_)
