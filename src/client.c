@@ -75,7 +75,7 @@ static void clean_client_ctx(struct Client_CTX *ctx)
 		ctx->verse.lu_table = NULL;
 	}
 
-	if(ctx->sender->timer != NULL) {
+	if(ctx->sender != NULL && ctx->sender->timer != NULL) {
 		pthread_mutex_destroy(&ctx->sender->timer->mutex);
 		free(ctx->sender->timer);
 		ctx->sender->timer = NULL;
@@ -192,7 +192,6 @@ static void print_help(char *prog_name)
 	printf("   -v visual_type   use visual type [none|lines|dots|dot-lines]\n");
 	printf("   -d debug_level   use debug level [none|info|error|warning|debug]\n");
 	printf("   -f fps           use defined FPS value (default value is 60)\n");
-	printf("   -n num           num*num sender count will be used (default 1)\n");
 	printf("   -h               display this help and exit\n");
 	printf("   -s               secure UDP connection with DTLS protocol\n");
 	printf("   -c               make screen-cast to TGA files\n");
@@ -207,7 +206,7 @@ int main(int argc, char *argv[])
     init_client_ctx(&ctx);
 
 	/* When client was started with some arguments */
-	if(argc>2) {
+	if(argc > 1) {
 		/* Parse all options */
 		while( (opt = getopt(argc, argv, "shcv:d:t:f:n:")) != -1) {
 			switch(opt) {
@@ -244,13 +243,6 @@ int main(int argc, char *argv[])
 				case 'f':
 					if(sscanf(optarg, "%u", &ctx.verse.fps) != 1) {
 						ctx.verse.fps = DEFAULT_FPS;
-					}
-					break;
-				case 'n':
-					if(sscanf(optarg, "%u", &ctx.sender_count) != 1) {
-						ctx.sender_count = DEFAULT_SENDER_COUNT;
-					} else {
-						ctx.sender_count = ctx.sender_count*ctx.sender_count;
 					}
 					break;
 				case 'h':
