@@ -85,7 +85,7 @@ static void cb_receive_layer_unset_value(const uint8_t session_id,
 		sender_node = (struct ParticleSenderNode*)node;
 		sender = sender_node->sender;
 
-		if(layer_id == layer_id == sender_node->particle_layer_id) {
+		if(layer_id == sender_node->particle_layer_id) {
 
 			pthread_mutex_lock(&sender_node->sender->rec_pd->mutex);
 

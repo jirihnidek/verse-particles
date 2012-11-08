@@ -118,7 +118,7 @@ static void cb_receive_tag_set_value(const uint8 session_id,
 {
 	struct Node *node;
 	struct ParticleSenderNode *sender_node;
-	struct ParticleSceneNode *scene_node;
+	/*struct ParticleSceneNode *scene_node;*/
 
 	printf("%s() session_id: %u, node_id: %u, taggroup_id: %u, tag_id: %u, type: %d, count %d, data: %p\n",
 				__FUNCTION__, session_id, node_id, taggroup_id, tag_id, data_type, count, value);
@@ -141,8 +141,8 @@ static void cb_receive_tag_set_value(const uint8 session_id,
 			}
 			break;
 		case PARTICLE_SCENE_NODE:
-			scene_node = (struct ParticleSceneNode *)node;
-			/* TODO: add something useful here */
+			/* scene_node = (struct ParticleSceneNode *)node;
+			TODO: add something useful here */
 			break;
 		}
 	}
