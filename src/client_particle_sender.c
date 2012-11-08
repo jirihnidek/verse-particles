@@ -58,6 +58,10 @@ static void handle_signal(int sig)
 		if(ctx != NULL) {
 			printf("%s() try to terminate connection: %d\n",
 					__FUNCTION__, ctx->verse.session_id);
+			/* Try to delete particle sender node */
+			vrs_send_node_destroy(ctx->verse.session_id, VRS_DEFAULT_PRIORITY,
+					ctx->sender->sender_node->node_id);
+			/* Terminate connection */
 			vrs_send_connect_terminate(ctx->verse.session_id);
 		} else {
 			exit(EXIT_FAILURE);
@@ -181,8 +185,6 @@ static void cb_receive_tag_create(const uint8 session_id,
 						custom_type == SENDER_COUNT)
 				{
 					scene_node->sender_count_tag_id = tag_id;
-					vrs_send_tag_set_value(session_id, VRS_DEFAULT_PRIORITY,
-							node_id, taggroup_id, tag_id, data_type, count, &ctx->sender_count);
 				}
 			}
 			break;
@@ -393,11 +395,6 @@ static void cb_receive_connect_accept(const uint8 session_id,
       const uint16 user_id,
       const uint32 avatar_id)
 {
-	uint32 i;
-#if 0
-	uint32 j;
-#endif
-
 	printf("%s() session_id: %d, user_id: %d, avatar_id: %d\n",
 			__FUNCTION__, session_id, user_id, avatar_id);
 
@@ -407,19 +404,11 @@ static void cb_receive_connect_accept(const uint8 session_id,
 	/* Subscribe to avatar node */
 	vrs_send_node_subscribe(session_id, VRS_DEFAULT_PRIORITY, avatar_id, 0);
 
-	/* Create new node (particle scene node) */
+	/* TODO: Create new particle scene node only when there is no other particle scene node */
 	vrs_send_node_create(session_id, VRS_DEFAULT_PRIORITY, PARTICLE_SCENE_NODE);
 
-	for(i=0; i<ctx->sender_count; i++) {
-		/* Create new node (particle sender node) */
-		vrs_send_node_create(session_id, VRS_DEFAULT_PRIORITY, PARTICLE_SENDER_NODE);
-#if 0
-		/* Create new node (particle node) */
-		for(j=0; j<ctx->pd->particle_count; j++) {
-			vrs_send_node_create(session_id, VRS_DEFAULT_PRIORITY, PARTICLE_NODE);
-		}
-#endif
-	}
+	/* Create new node (particle sender node) */
+	vrs_send_node_create(session_id, VRS_DEFAULT_PRIORITY, PARTICLE_SENDER_NODE);
 }
 
 static void cb_receive_connect_terminate(const uint8 session_id,
@@ -521,48 +510,51 @@ static void verse_send_data(void)
 	pthread_mutex_lock(&ctx->sender->timer->mutex);
 
 	if(ctx->sender->timer->run == 1) {
+		uint16 item_id;
 
 		/* Send position for current frame */
 		if(ctx->sender->timer->frame >=0 &&
 				ctx->sender->timer->frame < ctx->pd->frame_count)
 		{
-			struct ParticleSceneNode *scene_node = ctx->verse.particle_scene_node;
-			struct ParticleSenderNode *sender_node;
-			uint16 item_id;
 
-			/* For all of my senders ... */
-			for(sender_node = scene_node->senders.first;
-					sender_node != NULL;
-					sender_node = sender_node->next)
-			{
-				/* TODO: add here check, if this is sender of this client */
+			/* Send current frame */
+			vrs_send_tag_set_value(ctx->verse.session_id,
+					VRS_DEFAULT_PRIORITY,
+					ctx->sender->sender_node->node_id,
+					ctx->sender->sender_node->particle_taggroup_id,
+					ctx->sender->sender_node->particle_frame_tag_id,
+					VRS_VALUE_TYPE_UINT16,
+					1,
+					&ctx->sender->timer->frame);
 
-				/* Send current frame */
-				if(ctx->sender->timer->frame < ctx->pd->frame_count) {
-					vrs_send_tag_set_value(ctx->verse.session_id,
+			/* For all particles of sender ... */
+			for(item_id = 0; item_id < ctx->pd->particle_count; item_id++) {
+				/* Send all active particles */
+				if(ctx->pd->particles[item_id].states[ctx->sender->timer->frame].state == PARTICLE_STATE_ACTIVE) {
+					vrs_send_layer_set_value(ctx->verse.session_id,
 							VRS_DEFAULT_PRIORITY,
-							sender_node->node_id,
-							sender_node->particle_taggroup_id,
-							sender_node->particle_frame_tag_id,
-							VRS_VALUE_TYPE_UINT16,
-							1,
-							&ctx->sender->timer->frame);
+							ctx->sender->sender_node->node_id,
+							ctx->sender->sender_node->particle_layer_id,
+							item_id,
+							VRS_VALUE_TYPE_REAL32,
+							3,
+							ctx->pd->particles[item_id].states[ctx->sender->timer->frame].pos);
 				}
+			}
+		}
 
-				/* For all particles of sender ... */
-				for(item_id = 0; item_id < ctx->pd->particle_count; item_id++) {
-					/* Send all active particles */
-					if(ctx->pd->particles[item_id].states[ctx->sender->timer->frame].state == PARTICLE_STATE_ACTIVE) {
-						vrs_send_layer_set_value(ctx->verse.session_id,
-								VRS_DEFAULT_PRIORITY,
-								sender_node->node_id,
-								sender_node->particle_layer_id,
-								item_id,
-								VRS_VALUE_TYPE_REAL32,
-								3,
-								ctx->pd->particles[item_id].states[ctx->sender->timer->frame].pos);
-					}
-				}
+		/* When animation is at the end, then "delete" particles */
+		if(ctx->sender->timer->tot_frame >=0 &&
+				ctx->sender->timer->frame == 0) {
+			printf("Debug: unsetting ...\n");
+			/* For all particles of sender ... */
+			for(item_id = 0; item_id < ctx->pd->particle_count; item_id++) {
+				/* Unset value (delete position) */
+				vrs_send_layer_unset_value(ctx->verse.session_id,
+						VRS_DEFAULT_PRIORITY,
+						ctx->sender->sender_node->node_id,
+						ctx->sender->sender_node->particle_layer_id,
+						item_id);
 			}
 		}
 	}

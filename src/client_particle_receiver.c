@@ -65,6 +65,43 @@ static void handle_signal(int sig)
 	}
 }
 
+static void cb_receive_layer_unset_value(const uint8_t session_id,
+		const uint32_t node_id,
+		const uint16_t layer_id,
+		const uint32_t item_id)
+{
+	struct Node *node;
+	struct ParticleSenderNode *sender_node;
+	struct Particle_Sender *sender;
+
+	printf("%s() session_id: %u, node_id: %u, layer_id: %u, item_id: %u\n",
+				__FUNCTION__, session_id, node_id, layer_id, item_id);
+
+	node = lu_find(ctx->verse.lu_table, node_id);
+
+	if(node != NULL &&
+			node->type == PARTICLE_SENDER_NODE) {
+		struct ReceivedParticle *rec_particle;
+		sender_node = (struct ParticleSenderNode*)node;
+		sender = sender_node->sender;
+
+		if(layer_id == layer_id == sender_node->particle_layer_id) {
+
+			pthread_mutex_lock(&sender_node->sender->rec_pd->mutex);
+
+			rec_particle = &sender->rec_pd->received_particles[item_id];
+			rec_particle->first_received_state = NULL;
+			rec_particle->last_received_state = NULL;
+			rec_particle->current_received_state = NULL;
+
+			pthread_mutex_unlock(&sender_node->sender->rec_pd->mutex);
+		}
+
+	} else {
+		printf("ERROR: Sender node not found\n");
+	}
+}
+
 static void cb_receive_layer_set_value(const uint8_t session_id,
 		const uint32_t node_id,
 		const uint16_t layer_id,
@@ -547,23 +584,29 @@ static void cb_receive_user_authenticate(const uint8 session_id,
 
 static void register_cb_func_particle_receiver(void)
 {
-	/* Register callback functions */
+	/* System callbacks */
 	vrs_register_receive_user_authenticate(cb_receive_user_authenticate);
 	vrs_register_receive_connect_accept(cb_receive_connect_accept);
 	vrs_register_receive_connect_terminate(cb_receive_connect_terminate);
 
+	/* Node callbacks */
 	vrs_register_receive_node_create(cb_receive_node_create);
 	vrs_register_receive_node_destroy(cb_receive_node_destroy);
 	vrs_register_receive_node_link(cb_receive_node_link);
 
+	/* TagGroup callbacks */
 	vrs_register_receive_taggroup_create(cb_receive_taggroup_create);
 	vrs_register_receive_taggroup_destroy(cb_receive_taggroup_destroy);
+
+	/* Tag callbacks */
 	vrs_register_receive_tag_create(cb_receive_tag_create);
 	vrs_register_receive_tag_destroy(cb_receive_tag_destroy);
 	vrs_register_receive_tag_set_value(cb_receive_tag_set_value);
 
+	/* Layer callbacks */
 	vrs_register_receive_layer_create(cb_receive_layer_create);
 	vrs_register_receive_layer_set_value(cb_receive_layer_set_value);
+	vrs_register_receive_layer_unset_value(cb_receive_layer_unset_value);
 }
 
 void *particle_receiver_loop(void *arg)
