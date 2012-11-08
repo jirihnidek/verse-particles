@@ -285,7 +285,6 @@ static void cb_receive_taggroup_create(const uint8 session_id,
 			if(custom_type == PARTICLE_SENDER) {
 				sender_node->particle_taggroup_id = taggroup_id;
 
-
 				vrs_send_taggroup_subscribe(session_id, VRS_DEFAULT_PRIORITY, node_id, taggroup_id, 0, 0);
 
 				vrs_send_tag_create(session_id, VRS_DEFAULT_PRIORITY,
@@ -429,13 +428,10 @@ static void cb_receive_user_authenticate(const uint8 session_id,
 	char *password;
 	int i, is_passwd_supported=0;
 
+	/* Replace with some real user name and password or set
+	 * it to NULL, when you want to type user name and password */
 	static char *my_user_name = "a";
 	static char *my_password = "a";
-
-	/*
-	static char *my_user_name = "";
-	static char *my_password = "";
-	*/
 
 	/* Debug print */
 	printf("%s() username: %s, auth_methods_count: %d, methods: ",
