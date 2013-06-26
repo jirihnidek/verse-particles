@@ -1,14 +1,14 @@
 Verse Particles
 ===============
 
-This is Verse client for testing verse protocol. This application contains one program (Verse client). This program
-could run in two modes. First mode (sender) is used for sending particle system over un-reliable network to Verse
-server. The second mode of Verse client (receiver) should run on same machine as Verse server and it tries to
-subscribe and receive particle data from first Verse client over Verse server.
+This project contains Verse client application used for testing [Verse protocol](https://verse.github.com). This
+aplication could run in two modes. First mode (sender) is used for sending particle system to Verse server. The sender
+should run on the same machine as Verse server. The second mode of Verse client (receiver) receives particle data
+from Verse server over unreliable network. It uses verse layers for sharing particle position.
 
 Video with example could be found at YouTube:
 
-http://www.youtube.com/watch?v=IJm-Inp9kTI
+ * http://www.youtube.com/watch?v=IJm-Inp9kTI
 
 License
 =======
@@ -25,7 +25,7 @@ Requirements
 
  * GCC: http://gcc.gnu.org/ or Clang: http://clang.llvm.org/ 
  * CMake http://www.cmake.org/
- * Verse: https://github.com/jirihnidek/verse
+ * Verse: https://verse.github.com
  * OpenGL: http://www.opengl.org/
  * GLUT: http://www.opengl.org/resources/libraries/glut/
 
@@ -51,13 +51,13 @@ Then you have to start one verse_particle in sender mode:
 
 When sender is running, then you have to run receiver:
 
-    ./bin/verse_particle -t receiver localhost ../particle_data/10
+    ./bin/verse_particle -t receiver host.with.verse.server.com ../particle_data/10
 
 You can also run sender and sender at virtualized server and receiver at host. Therse is script ./bin/tc_set.sh
 that could be used for modification of links between virtualized machine and host and vica verse.
 
-Contacts
-========
+Contact
+=======
 
  * E-mail: jiri.hnidek@tul.cz
  * Phone: +420 485 35 3695

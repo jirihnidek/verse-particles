@@ -42,20 +42,20 @@
 #define PARTICLE_SENDER_NODE	101
 
 /* Custom types of taggroups */
-#define PARTICLE_SCENE			200
-#define PARTICLE_SENDER			201
-#define PARTICLE				202
+#define PARTICLE_SCENE_TG		200
+#define PARTICLE_SENDER_TG		201
+#define PARTICLE_TG				202
 
 /* Custom types of tags */
-#define PARTICLE_FRAME 			300
-#define SENDER_COUNT			301
-#define POSITION				302
-#define PARTICLE_COUNT			303
-#define SENDER_ID				304
-#define PARTICLE_ID				305
+#define PARTICLE_FRAME_TAG 		300
+#define SENDER_COUNT_TAG		301
+#define POSITION_TAG			302
+#define PARTICLE_COUNT_TAG		303
+#define SENDER_ID_TAG			304
+#define PARTICLE_ID_TAG			305
 
 /* Custom type of layers */
-#define PARTICLES				400
+#define PARTICLE_POS_LAYER		400
 
 /**
  * This structure contains informations about verse node.

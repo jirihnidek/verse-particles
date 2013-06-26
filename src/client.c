@@ -51,6 +51,10 @@
 #include "timer.h"
 #include "sender.h"
 
+
+/**
+ * \brief Clean client context
+ */
 static void clean_client_ctx(struct Client_CTX *ctx)
 {
 	if(ctx->pd != NULL) {
@@ -100,6 +104,10 @@ static void clean_client_ctx(struct Client_CTX *ctx)
 	ctx->verse.session_id = -1;
 }
 
+
+/**
+ * \brief Set default values of client context
+ */
 static void init_client_ctx(struct Client_CTX *ctx)
 {
 	ctx->flags = 0;
@@ -119,6 +127,10 @@ static void init_client_ctx(struct Client_CTX *ctx)
 	sem_init(&ctx->timer_sem, 0, 0);
 }
 
+
+/**
+ * \brief Set type of client
+ */
 static int set_client_type(struct Client_CTX *ctx, char *c_type)
 {
 	int ret = 0;
@@ -130,12 +142,16 @@ static int set_client_type(struct Client_CTX *ctx, char *c_type)
 		ctx->client_type = CLIENT_SENDER;
 		ret = 1;
 	} else {
-		printf("Error: Unsupported client type: %s\n", c_type);
+		printf("ERROR: Unsupported client type: %s\n", c_type);
 	}
 
 	return ret;
 }
 
+
+/**
+ * \brief Set type of particle visualization
+ */
 static int set_visual_type(struct Client_CTX *ctx, char *v_type)
 {
 	int ret = 0;
@@ -153,12 +169,16 @@ static int set_visual_type(struct Client_CTX *ctx, char *v_type)
 		ctx->display->visual_type = VISUAL_SIMPLE;
 		ret = 1;
 	} else {
-		printf("Error: Unsupported visual type: %s\n", v_type);
+		printf("ERROR: Unsupported visual type: %s\n", v_type);
 	}
 
 	return ret;
 }
 
+
+/**
+ * \brief Set type of client debug level
+ */
 static int set_debug_level(char *debug_level)
 {
 	int ret = VRS_FAILURE;
@@ -174,12 +194,16 @@ static int set_debug_level(char *debug_level)
 	} else if( strcmp(debug_level, "none") == 0 ) {
 		ret = vrs_set_debug_level(VRS_PRINT_NONE);
 	} else {
-		printf("Error: Unsupported debug level: %s\n", debug_level);
+		printf("ERROR: Unsupported debug level: %s\n", debug_level);
 	}
 
 	return (ret==VRS_SUCCESS)?1:0;
 }
 
+
+/**
+ * \brief Print help
+ */
 static void print_help(char *prog_name)
 {
 	printf("\n Usage: %s [OPTION...] -t client_type server_address particle_directory\n", prog_name);
@@ -190,13 +214,16 @@ static void print_help(char *prog_name)
 	printf("  Options:\n");
 	printf("   -t client_type   type of client: [sender|receiver]\n");
 	printf("   -v visual_type   use visual type [none|lines|dots|dot-lines]\n");
+	printf("                      (default: none)\n");
 	printf("   -d debug_level   use debug level [none|info|error|warning|debug]\n");
+	printf("                      (default: debug)\n");
 	printf("   -f fps           use defined FPS value (default value is 60)\n");
 	printf("   -h               display this help and exit\n");
 	printf("   -s               secure UDP connection with DTLS protocol\n");
 	printf("   -c               make screen-cast to TGA files\n");
 	printf("\n");
 }
+
 
 int main(int argc, char *argv[])
 {
@@ -261,20 +288,20 @@ int main(int argc, char *argv[])
 		/* The last two arguments have to be name of server and name of
 		 * directory containing particles */
 		if(optind+2 != argc) {
-			printf("Error: Bad number of parameters: %d != 2\n", argc - optind);
+			printf("ERROR: Bad number of parameters: %d != 2\n", argc - optind);
 			print_help(argv[0]);
 			clean_client_ctx(&ctx);
 			return EXIT_FAILURE;
 		}
 	} else {
-		printf("Error: Minimal number of arguments: 2\n");
+		printf("ERROR: Minimal number of arguments: 2\n");
 		print_help(argv[0]);
 		clean_client_ctx(&ctx);
 		return EXIT_FAILURE;
 	}
 
 	if(ctx.client_type == CLIENT_NONE) {
-		printf("Error: No type of client specified\n");
+		printf("ERROR: No type of client specified\n");
 		print_help(argv[0]);
 		clean_client_ctx(&ctx);
 		return EXIT_FAILURE;

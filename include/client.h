@@ -55,6 +55,9 @@
 
 #define DEFAULT_FPS	25
 
+/**
+ * Type of client (sender/receiver)
+ */
 typedef enum ClientType {
 	CLIENT_NONE		= 1,
 	CLIENT_RECEIVER	= 2,
