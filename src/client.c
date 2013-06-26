@@ -51,6 +51,10 @@
 #include "timer.h"
 #include "sender.h"
 
+
+/**
+ * \brief Clean client context
+ */
 static void clean_client_ctx(struct Client_CTX *ctx)
 {
 	if(ctx->pd != NULL) {
@@ -75,7 +79,7 @@ static void clean_client_ctx(struct Client_CTX *ctx)
 		ctx->verse.lu_table = NULL;
 	}
 
-	if(ctx->sender->timer != NULL) {
+	if(ctx->sender != NULL && ctx->sender->timer != NULL) {
 		pthread_mutex_destroy(&ctx->sender->timer->mutex);
 		free(ctx->sender->timer);
 		ctx->sender->timer = NULL;
@@ -100,6 +104,10 @@ static void clean_client_ctx(struct Client_CTX *ctx)
 	ctx->verse.session_id = -1;
 }
 
+
+/**
+ * \brief Set default values of client context
+ */
 static void init_client_ctx(struct Client_CTX *ctx)
 {
 	ctx->flags = 0;
@@ -119,6 +127,10 @@ static void init_client_ctx(struct Client_CTX *ctx)
 	sem_init(&ctx->timer_sem, 0, 0);
 }
 
+
+/**
+ * \brief Set type of client
+ */
 static int set_client_type(struct Client_CTX *ctx, char *c_type)
 {
 	int ret = 0;
@@ -130,12 +142,16 @@ static int set_client_type(struct Client_CTX *ctx, char *c_type)
 		ctx->client_type = CLIENT_SENDER;
 		ret = 1;
 	} else {
-		printf("Unsupported client type: %s\n", c_type);
+		printf("ERROR: Unsupported client type: %s\n", c_type);
 	}
 
 	return ret;
 }
 
+
+/**
+ * \brief Set type of particle visualization
+ */
 static int set_visual_type(struct Client_CTX *ctx, char *v_type)
 {
 	int ret = 0;
@@ -153,15 +169,19 @@ static int set_visual_type(struct Client_CTX *ctx, char *v_type)
 		ctx->display->visual_type = VISUAL_SIMPLE;
 		ret = 1;
 	} else {
-		printf("Unsupported visual type: %s\n", v_type);
+		printf("ERROR: Unsupported visual type: %s\n", v_type);
 	}
 
 	return ret;
 }
 
+
+/**
+ * \brief Set type of client debug level
+ */
 static int set_debug_level(char *debug_level)
 {
-	int ret = 0;
+	int ret = VRS_FAILURE;
 
 	if( strcmp(debug_level, "debug") == 0) {
 		ret = vrs_set_debug_level(VRS_PRINT_DEBUG_MSG);
@@ -174,12 +194,16 @@ static int set_debug_level(char *debug_level)
 	} else if( strcmp(debug_level, "none") == 0 ) {
 		ret = vrs_set_debug_level(VRS_PRINT_NONE);
 	} else {
-		printf("Unsupported debug level: %s\n", debug_level);
+		printf("ERROR: Unsupported debug level: %s\n", debug_level);
 	}
 
-	return ret;
+	return (ret==VRS_SUCCESS)?1:0;
 }
 
+
+/**
+ * \brief Print help
+ */
 static void print_help(char *prog_name)
 {
 	printf("\n Usage: %s [OPTION...] -t client_type server_address particle_directory\n", prog_name);
@@ -190,14 +214,16 @@ static void print_help(char *prog_name)
 	printf("  Options:\n");
 	printf("   -t client_type   type of client: [sender|receiver]\n");
 	printf("   -v visual_type   use visual type [none|lines|dots|dot-lines]\n");
+	printf("                      (default: none)\n");
 	printf("   -d debug_level   use debug level [none|info|error|warning|debug]\n");
+	printf("                      (default: debug)\n");
 	printf("   -f fps           use defined FPS value (default value is 60)\n");
-	printf("   -n num           num*num sender count will be used (default 1)\n");
 	printf("   -h               display this help and exit\n");
 	printf("   -s               secure UDP connection with DTLS protocol\n");
 	printf("   -c               make screen-cast to TGA files\n");
 	printf("\n");
 }
+
 
 int main(int argc, char *argv[])
 {
@@ -207,7 +233,7 @@ int main(int argc, char *argv[])
     init_client_ctx(&ctx);
 
 	/* When client was started with some arguments */
-	if(argc>2) {
+	if(argc > 1) {
 		/* Parse all options */
 		while( (opt = getopt(argc, argv, "shcv:d:t:f:n:")) != -1) {
 			switch(opt) {
@@ -244,13 +270,6 @@ int main(int argc, char *argv[])
 				case 'f':
 					if(sscanf(optarg, "%u", &ctx.verse.fps) != 1) {
 						ctx.verse.fps = DEFAULT_FPS;
-					}
-					break;
-				case 'n':
-					if(sscanf(optarg, "%u", &ctx.sender_count) != 1) {
-						ctx.sender_count = DEFAULT_SENDER_COUNT;
-					} else {
-						ctx.sender_count = ctx.sender_count*ctx.sender_count;
 					}
 					break;
 				case 'h':
