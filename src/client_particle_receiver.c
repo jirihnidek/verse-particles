@@ -441,7 +441,7 @@ static void cb_receive_node_create(const uint8 session_id,
 			lu_add_item(ctx->verse.lu_table, node_id, ctx->verse.particle_scene_node);
 
 			/* Subscribe to this node */
-			vrs_send_node_subscribe(session_id, VRS_DEFAULT_PRIORITY, node_id, 0);
+			vrs_send_node_subscribe(session_id, VRS_DEFAULT_PRIORITY, node_id, 0, 0);
 		}
 		break;
 	case PARTICLE_SENDER_NODE:
@@ -474,7 +474,7 @@ static void cb_receive_node_create(const uint8 session_id,
 
 			v_list_add_tail(&ctx->verse.particle_scene_node->senders, sender_node);
 
-			vrs_send_node_subscribe(session_id, VRS_DEFAULT_PRIORITY, node_id, 0);
+			vrs_send_node_subscribe(session_id, VRS_DEFAULT_PRIORITY, node_id, 0, 0);
 		}
 		break;
 	}
@@ -508,10 +508,10 @@ static void cb_receive_connect_accept(const uint8 session_id,
 	ctx->verse.user_id = user_id;
 
 	/* Subscribe to avatar node */
-	vrs_send_node_subscribe(session_id, VRS_DEFAULT_PRIORITY, avatar_id, 0);
+	vrs_send_node_subscribe(session_id, VRS_DEFAULT_PRIORITY, avatar_id, 0, 0);
 
 	/* Subscribe to parent of scenes */
-	vrs_send_node_subscribe(session_id, VRS_DEFAULT_PRIORITY, VRS_SCENE_PARENT_NODE_ID, 0);
+	vrs_send_node_subscribe(session_id, VRS_DEFAULT_PRIORITY, VRS_SCENE_PARENT_NODE_ID, 0, 0);
 
 }
 
@@ -622,7 +622,7 @@ void *particle_receiver_loop(void *arg)
 	register_cb_func_particle_receiver();
 
 	if((ret = vrs_send_connect_request(ctx->verse.server_name, "12345",
-			VRS_DGRAM_SEC_NONE ,&ctx->verse.session_id))!=VRS_SUCCESS) {
+			VRS_SEC_DATA_NONE ,&ctx->verse.session_id))!=VRS_SUCCESS) {
 		printf("ERROR: %s\n", vrs_strerror(ret));
 		return 0;
 	}

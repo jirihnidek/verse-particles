@@ -336,7 +336,7 @@ static void cb_receive_node_create(const uint8 session_id,
 				lu_add_item(ctx->verse.lu_table, node_id, ctx->verse.particle_scene_node);
 
 				vrs_send_node_link(session_id, VRS_DEFAULT_PRIORITY, VRS_SCENE_PARENT_NODE_ID, node_id);
-				vrs_send_node_subscribe(session_id, VRS_DEFAULT_PRIORITY, node_id, 0);
+				vrs_send_node_subscribe(session_id, VRS_DEFAULT_PRIORITY, node_id, 0, 0);
 				vrs_send_taggroup_create(session_id, VRS_DEFAULT_PRIORITY, node_id, PARTICLE_SCENE);
 			}
 			break;
@@ -370,7 +370,7 @@ static void cb_receive_node_create(const uint8 session_id,
 				v_list_add_tail(&ctx->verse.particle_scene_node->senders, sender_node);
 
 				vrs_send_node_subscribe(session_id, VRS_DEFAULT_PRIORITY,
-						node_id, 0);
+						node_id, 0, 0);
 				vrs_send_node_link(session_id, VRS_DEFAULT_PRIORITY,
 						ctx->verse.particle_scene_node->node_id, node_id);
 				vrs_send_taggroup_create(session_id, VRS_DEFAULT_PRIORITY,
@@ -401,7 +401,7 @@ static void cb_receive_connect_accept(const uint8 session_id,
 	ctx->verse.user_id = user_id;
 
 	/* Subscribe to avatar node */
-	vrs_send_node_subscribe(session_id, VRS_DEFAULT_PRIORITY, avatar_id, 0);
+	vrs_send_node_subscribe(session_id, VRS_DEFAULT_PRIORITY, avatar_id, 0, 0);
 
 	/* TODO: Create new particle scene node only when there is no other particle scene node */
 	vrs_send_node_create(session_id, VRS_DEFAULT_PRIORITY, PARTICLE_SCENE_NODE);
@@ -571,7 +571,7 @@ int particle_sender_loop(struct Client_CTX *ctx_)
 	register_cb_func_particle_sender();
 
 	if((ret = vrs_send_connect_request(ctx->verse.server_name, "12345",
-			VRS_DGRAM_SEC_NONE ,&ctx->verse.session_id))!=VRS_SUCCESS) {
+			VRS_SEC_DATA_NONE ,&ctx->verse.session_id))!=VRS_SUCCESS) {
 		printf("ERROR: %s\n", vrs_strerror(ret));
 		return 0;
 	}
