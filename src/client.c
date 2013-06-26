@@ -130,7 +130,7 @@ static int set_client_type(struct Client_CTX *ctx, char *c_type)
 		ctx->client_type = CLIENT_SENDER;
 		ret = 1;
 	} else {
-		printf("Unsupported client type: %s\n", c_type);
+		printf("Error: Unsupported client type: %s\n", c_type);
 	}
 
 	return ret;
@@ -153,7 +153,7 @@ static int set_visual_type(struct Client_CTX *ctx, char *v_type)
 		ctx->display->visual_type = VISUAL_SIMPLE;
 		ret = 1;
 	} else {
-		printf("Unsupported visual type: %s\n", v_type);
+		printf("Error: Unsupported visual type: %s\n", v_type);
 	}
 
 	return ret;
@@ -161,7 +161,7 @@ static int set_visual_type(struct Client_CTX *ctx, char *v_type)
 
 static int set_debug_level(char *debug_level)
 {
-	int ret = 0;
+	int ret = VRS_FAILURE;
 
 	if( strcmp(debug_level, "debug") == 0) {
 		ret = vrs_set_debug_level(VRS_PRINT_DEBUG_MSG);
@@ -174,10 +174,10 @@ static int set_debug_level(char *debug_level)
 	} else if( strcmp(debug_level, "none") == 0 ) {
 		ret = vrs_set_debug_level(VRS_PRINT_NONE);
 	} else {
-		printf("Unsupported debug level: %s\n", debug_level);
+		printf("Error: Unsupported debug level: %s\n", debug_level);
 	}
 
-	return ret;
+	return (ret==VRS_SUCCESS)?1:0;
 }
 
 static void print_help(char *prog_name)
@@ -261,20 +261,20 @@ int main(int argc, char *argv[])
 		/* The last two arguments have to be name of server and name of
 		 * directory containing particles */
 		if(optind+2 != argc) {
-			printf("ERROR: Bad number of parameters: %d != 2\n", argc - optind);
+			printf("Error: Bad number of parameters: %d != 2\n", argc - optind);
 			print_help(argv[0]);
 			clean_client_ctx(&ctx);
 			return EXIT_FAILURE;
 		}
 	} else {
-		printf("ERROR: Minimal number of arguments: 2\n");
+		printf("Error: Minimal number of arguments: 2\n");
 		print_help(argv[0]);
 		clean_client_ctx(&ctx);
 		return EXIT_FAILURE;
 	}
 
 	if(ctx.client_type == CLIENT_NONE) {
-		printf("ERROR: No type of client specified\n");
+		printf("Error: No type of client specified\n");
 		print_help(argv[0]);
 		clean_client_ctx(&ctx);
 		return EXIT_FAILURE;
