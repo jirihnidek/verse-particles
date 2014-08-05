@@ -578,7 +578,6 @@ int particle_sender_loop(struct Client_CTX *ctx_)
 
 	/* Never ending loop */
 	while(1) {
-		/* usleep(1000000/ctx->verse.fps); */
 		sem_wait(&ctx->timer_sem);
 		vrs_callback_update(ctx->verse.session_id);
 		verse_send_data();
