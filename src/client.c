@@ -79,6 +79,16 @@ static void clean_client_ctx(struct Client_CTX *ctx)
 		ctx->verse.lu_table = NULL;
 	}
 
+	if(ctx->verse.username != NULL) {
+		free(ctx->verse.username);
+		ctx->verse.username = NULL;
+	}
+
+	if(ctx->verse.password != NULL) {
+		free(ctx->verse.password);
+		ctx->verse.password = NULL;
+	}
+
 	if(ctx->sender != NULL && ctx->sender->timer != NULL) {
 		pthread_mutex_destroy(&ctx->sender->timer->mutex);
 		free(ctx->sender->timer);
@@ -121,6 +131,8 @@ static void init_client_ctx(struct Client_CTX *ctx)
 	ctx->verse.server_name = NULL;
 	ctx->verse.session_id = -1;
 	ctx->verse.lu_table = NULL;
+	ctx->verse.username = NULL;
+	ctx->verse.password = NULL;
 	ctx->receiver_thread = 0;
 	ctx->timer_thread = 0;
 	ctx->sender = NULL;
@@ -217,10 +229,12 @@ static void print_help(char *prog_name)
 	printf("                      (default: none)\n");
 	printf("   -d debug_level   use debug level [none|info|error|warning|debug]\n");
 	printf("                      (default: debug)\n");
-	printf("   -f fps           use defined FPS value (default value is 60)\n");
+	printf("   -f fps           use defined FPS value (default value is 25)\n");
 	printf("   -h               display this help and exit\n");
 	printf("   -s               secure UDP connection with DTLS protocol\n");
 	printf("   -c               make screen-cast to TGA files\n");
+	printf("   -u username      username used for authentication\n");
+	printf("   -p password      password used for authentication\n");
 	printf("\n");
 }
 
@@ -235,7 +249,7 @@ int main(int argc, char *argv[])
 	/* When client was started with some arguments */
 	if(argc > 1) {
 		/* Parse all options */
-		while( (opt = getopt(argc, argv, "shcv:d:t:f:n:")) != -1) {
+		while( (opt = getopt(argc, argv, "shcv:d:t:f:n:u:p:")) != -1) {
 			switch(opt) {
 				case 's':
 					ctx.flags |= VC_DGRAM_SEC_DTLS;
@@ -271,6 +285,12 @@ int main(int argc, char *argv[])
 					if(sscanf(optarg, "%u", &ctx.verse.fps) != 1) {
 						ctx.verse.fps = DEFAULT_FPS;
 					}
+					break;
+				case 'u':
+					ctx.verse.username = strdup(optarg);
+					break;
+				case 'p':
+					ctx.verse.password = strdup(optarg);
 					break;
 				case 'h':
 					print_help(argv[0]);

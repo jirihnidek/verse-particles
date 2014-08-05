@@ -75,6 +75,8 @@ typedef struct VerseData {
 	struct ParticleSceneNode	*particle_scene_node;
 	struct LookUp_Table			*lu_table;
 	uint32						fps;
+	char						*username;
+	char						*password;
 } VerseData;
 
 /**

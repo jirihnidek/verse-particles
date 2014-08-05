@@ -533,14 +533,6 @@ static void cb_receive_user_authenticate(const uint8 session_id,
 	char *password;
 	int i, is_passwd_supported=0;
 
-	static char *my_user_name = "a";
-	static char *my_password = "a";
-
-	/*
-	static char *my_user_name = "";
-	static char *my_password = "";
-	*/
-
 	/* Debug print */
 	printf("%s() username: %s, auth_methods_count: %d, methods: ",
 			__FUNCTION__, username, auth_methods_count);
@@ -554,13 +546,13 @@ static void cb_receive_user_authenticate(const uint8 session_id,
 
 	/* Get username, when it is requested */
 	if(username == NULL) {
-		if(strlen(my_user_name)==0) {
+		if(ctx->verse.username == NULL) {
 			printf("Username: ");
 			scanf("%s", name);
 			attempts = 0;	/* Reset counter of auth. attempt. */
 			vrs_send_user_authenticate(session_id, name, VRS_UA_METHOD_NONE, NULL);
 		} else {
-			vrs_send_user_authenticate(session_id, my_user_name, VRS_UA_METHOD_NONE, NULL);
+			vrs_send_user_authenticate(session_id, ctx->verse.username, VRS_UA_METHOD_NONE, NULL);
 		}
 	} else {
 		if(is_passwd_supported==1) {
@@ -568,13 +560,13 @@ static void cb_receive_user_authenticate(const uint8 session_id,
 			/* Print this warning, when previous authentication attempt failed. */
 			if(attempts>0)
 				printf("Permission denied, please try again.\n");
-			if(strlen(my_password)==0) {
+			if(ctx->verse.password == NULL) {
 				/* Get password from user */
 				password = getpass("Password: ");
 				attempts++;
-				vrs_send_user_authenticate(session_id, name, VRS_UA_METHOD_PASSWORD, password);
+				vrs_send_user_authenticate(session_id, username, VRS_UA_METHOD_PASSWORD, password);
 			} else {
-				vrs_send_user_authenticate(session_id, name, VRS_UA_METHOD_PASSWORD, my_password);
+				vrs_send_user_authenticate(session_id, username, VRS_UA_METHOD_PASSWORD, ctx->verse.password);
 			}
 		} else {
 			printf("ERROR: Verse server does not support password authentication method\n");
