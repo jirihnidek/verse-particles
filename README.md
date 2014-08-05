@@ -6,6 +6,8 @@ aplication could run in two modes. First mode (sender) is used for sending parti
 should run on the same machine as Verse server. The second mode of Verse client (receiver) receives particle data
 from Verse server over unreliable network. It uses verse layers for sharing particle position.
 
+![Verse Particle Screenshot](/screenshots/verse-particles.png "Screenshot of Verse Particles")
+
 Video with example could be found at YouTube:
 
  * http://www.youtube.com/watch?v=IJm-Inp9kTI
