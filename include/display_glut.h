@@ -67,6 +67,7 @@ typedef struct Material {
 	real32	diffuse[4];
 	real32	specular[4];
 	real32	ambient[4];
+	real32	shininess;
 } Material;
 
 /**
@@ -111,6 +112,16 @@ typedef struct Mouse {
 } Mouse;
 
 /**
+ * Information about canvas
+ */
+typedef struct Canvas {
+	float	bg_col_grad_top[4];
+	float	bg_col_grad_bottom[4];
+	float	point_size;
+	float	line_width;
+} Canvas;
+
+/**
  * All information required to display basic scene
  */
 typedef struct ParticleDisplay {
@@ -119,6 +130,7 @@ typedef struct ParticleDisplay {
 	struct Camera		camera;
 	struct Material		material;
 	struct Light		light;
+	struct Canvas		canvas;
 	enum VisualType		visual_type;
 } ParticleDisplay;
 

@@ -58,14 +58,15 @@ static struct Client_CTX *ctx = NULL;
  */
 static void gl_init(void)
 {
-	glClearColor(0.0, 0.0, 0.0, 0.0);	/* TODO: add to ctx */
-	glClearDepth(1.0f);	/* TODO: add to ctx */
+	glDepthFunc(GL_LEQUAL);
+	glClearColor(0.0, 0.0, 0.0, 0.0);	/* Is replaced with gradient later */
+	glClearDepth(1.0f);
 	glEnable(GL_DEPTH_TEST);
 	glDepthFunc(GL_LESS);
 	glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
 	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-	glPointSize(2.0);	/* TODO: add to ctx */
-	glLineWidth(1.0);	/* TODO: add to ctx */
+	glPointSize(ctx->display->canvas.point_size);
+	glLineWidth(ctx->display->canvas.line_width);
 	glEnable(GL_POINT_SMOOTH);
 	glLightfv(GL_LIGHT0, GL_AMBIENT, ctx->display->light.ambient);
 	glLightfv(GL_LIGHT0, GL_DIFFUSE, ctx->display->light.diffuse);
@@ -75,7 +76,7 @@ static void gl_init(void)
 	glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, ctx->display->material.ambient);
 	glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, ctx->display->material.diffuse);
 	glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, ctx->display->material.specular);
-	glMaterialf(GL_FRONT_AND_BACK, GL_SHININESS, 20.0);	/* TODO: add to ctx */
+	glMaterialf(GL_FRONT_AND_BACK, GL_SHININESS, ctx->display->material.shininess);
 }
 
 static void display_string_2d(char *string, int x, int y, const uint8 *col)
@@ -107,6 +108,26 @@ static void display_sender(struct Particle_Sender *sender)
 	pos[1] = sender->pos[1];
 	pos[2] = sender->pos[2];
 
+	/* Collision plane */
+	glEnable(GL_LIGHTING);
+	glEnable(GL_LIGHT0);
+	glBegin(GL_QUADS);
+	glNormal3f(0.0, 0.0, 1.0);
+	glVertex3f(pos[0]+8, pos[1]+5,  pos[2]-0.00001);
+	glVertex3f(pos[0]-8, pos[1]+5,  pos[2]-0.00001);
+	glVertex3f(pos[0]-8, pos[1]-11, pos[2]-0.00001);
+	glVertex3f(pos[0]+8, pos[1]-11, pos[2]-0.00001);
+	glEnd();
+	glDisable(GL_LIGHT0);
+	glDisable(GL_LIGHTING);
+	glBegin(GL_LINE_LOOP);
+	glColor3ubv(white_col);
+	glVertex3f(pos[0]+8, pos[1]+5,  pos[2]-0.00001);
+	glVertex3f(pos[0]-8, pos[1]+5,  pos[2]-0.00001);
+	glVertex3f(pos[0]-8, pos[1]-11, pos[2]-0.00001);
+	glVertex3f(pos[0]+8, pos[1]-11, pos[2]-0.00001);
+	glEnd();
+
 	/* Plane emiting particles */
 	glBegin(GL_LINE_LOOP);
 	glColor3ubv(white_col);
@@ -116,8 +137,6 @@ static void display_sender(struct Particle_Sender *sender)
 	glVertex3f(pos[0]-1, pos[1]+4, pos[2]+2-1);
 	glEnd();
 
-	/* TODO: dislay frame of sender and number of particle */
-
 	/* Fake shadow of plane emiting particles */
 	glLineWidth(2.0);
 	glBegin(GL_LINES);
@@ -126,18 +145,6 @@ static void display_sender(struct Particle_Sender *sender)
 	glVertex3f(pos[0]-1, pos[1]+4, pos[2]);
 	glEnd();
 	glLineWidth(1.0);
-
-	/* Collision plane */
-	glEnable(GL_LIGHTING);
-	glEnable(GL_LIGHT0);
-	glBegin(GL_QUADS);
-	glVertex3f(pos[0]+8, pos[1]+5,  pos[2]-0.00001);
-	glVertex3f(pos[0]-8, pos[1]+5,  pos[2]-0.00001);
-	glVertex3f(pos[0]-8, pos[1]-11, pos[2]-0.00001);
-	glVertex3f(pos[0]+8, pos[1]-11, pos[2]-0.00001);
-	glEnd();
-	glDisable(GL_LIGHT0);
-	glDisable(GL_LIGHTING);
 }
 
 #define MAX_STR_LEN	100
@@ -231,8 +238,6 @@ static void display_particle(float *pos, float size, const uint8 *col, const uin
 	/* Display last received position of (lost/delayed) particle */
 	glPointSize(size);
 	glBegin(GL_POINTS);
-	glColor3ubv(col);
-	glVertex3fv(pos);
 
 	/* Fake shadow of particle */
 	if(shadow == 1) {
@@ -240,6 +245,10 @@ static void display_particle(float *pos, float size, const uint8 *col, const uin
 		glColor3f(val, val, val);
 		glVertex3f(pos[0], pos[1], 0.0);
 	}
+
+	/* The particle itself */
+	glColor3ubv(col);
+	glVertex3fv(pos);
 
 	glEnd();
 	glPointSize(2.0);
@@ -445,15 +454,36 @@ static void display_rec_particle_system(struct Particle_Sender *sender)
 static void glut_on_display(void)
 {
 	struct Particle_Sender *sender;
+	const float eps = 1.0e-6;
+
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	glViewport(0, 0, ctx->display->window.width, ctx->display->window.height);
+
+	/* Draw background gradient */
+	glMatrixMode(GL_PROJECTION);
+	glLoadIdentity();
+	glOrtho(-1.0, 1.0, -1.0, 1.0, 1.0, -1.0);
+	glMatrixMode(GL_MODELVIEW);
+	glLoadIdentity();
+	glShadeModel(GL_SMOOTH);
+	glDepthFunc(GL_ALWAYS);
+	glBegin(GL_QUADS);
+	glColor4fv(ctx->display->canvas.bg_col_grad_bottom);
+	glVertex3f(-1.0f, -1.0f, -1.0f + eps);
+	glColor4fv(ctx->display->canvas.bg_col_grad_bottom);
+	glVertex3f( 1.0f, -1.0f, -1.0f + eps);
+	glColor4fv(ctx->display->canvas.bg_col_grad_top);
+	glVertex3f( 1.0f,  1.0f, -1.0f + eps);
+	glColor4fv(ctx->display->canvas.bg_col_grad_top);
+	glVertex3f(-1.0f,  1.0f, -1.0f + eps);
+	glEnd();
+
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
 	gluOrtho2D(0, ctx->display->window.width, 0, ctx->display->window.height);
 	glScalef(1, -1, 1);
 	glTranslatef(0, -ctx->display->window.height, 0);
-
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	/* BEGIN: Drawing of 2D stuff */
 
@@ -463,6 +493,7 @@ static void glut_on_display(void)
 
 	/* Set projection matrix for 3D stuff here */
 	glMatrixMode(GL_PROJECTION);
+
 	glPushMatrix();
 	glLoadIdentity();
 	gluPerspective(ctx->display->camera.field_of_view,
@@ -506,7 +537,7 @@ static void glut_on_display(void)
  */
 static void glut_on_timer(int value) {
 	glutPostRedisplay();
-	glutTimerFunc(40, glut_on_timer, value);	/* TODO: timer */
+	glutTimerFunc(1000/ctx->verse.fps, glut_on_timer, value);	/* TODO: timer */
 }
 
 /**
@@ -702,7 +733,7 @@ static void glut_init(int argc, char *argv[])
 	glutKeyboardFunc(glut_on_keyboard);
 	glutMouseFunc(glut_on_mouse_click);
 	glutMotionFunc(glut_on_mouse_drag);
-	glutTimerFunc(40, glut_on_timer, 0);
+	glutTimerFunc(1000/ctx->verse.fps, glut_on_timer, 0);
 	gl_init();
 }
 
@@ -771,6 +802,16 @@ struct ParticleDisplay *create_particle_display(void)
 	disp->material.diffuse[3] = 1.0;
 	disp->material.specular[0] = disp->material.specular[1] = disp->material.specular[2] = 1.0;
 	disp->material.specular[3] = 0.5;
+	disp->material.shininess = 20.0;
+
+	disp->canvas.bg_col_grad_bottom[0] = 0.15;
+	disp->canvas.bg_col_grad_bottom[1] = 0.15;
+	disp->canvas.bg_col_grad_bottom[2] = 0.15;
+	disp->canvas.bg_col_grad_top[0] = 0.4;
+	disp->canvas.bg_col_grad_top[1] = 0.4;
+	disp->canvas.bg_col_grad_top[2] = 0.4;
+	disp->canvas.point_size = 2.0;
+	disp->canvas.line_width = 1.0;
 
 	disp->visual_type = VISUAL_SIMPLE;
 
