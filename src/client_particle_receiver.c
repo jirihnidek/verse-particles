@@ -50,6 +50,8 @@
 
 static struct Client_CTX *ctx = NULL;
 
+#define NO_DEBUG_PRINT 1
+
 static void handle_signal(int sig)
 {
 	if(sig == SIGINT) {
@@ -74,8 +76,12 @@ static void cb_receive_layer_unset_value(const uint8_t session_id,
 	struct ParticleSenderNode *sender_node;
 	struct Particle_Sender *sender;
 
+#if NO_DEBUG_PRINT != 1
 	printf("%s() session_id: %u, node_id: %u, layer_id: %u, item_id: %u\n",
 				__FUNCTION__, session_id, node_id, layer_id, item_id);
+#else
+	(void)session_id;
+#endif
 
 	node = lu_find(ctx->verse.lu_table, node_id);
 
@@ -116,8 +122,15 @@ static void cb_receive_layer_set_value(const uint8_t session_id,
 	struct RefParticleState *ref_state;
 	uint16 current_frame;
 
+#if NO_DEBUG_PRINT != 1
 	printf("%s() session_id: %u, node_id: %u, layer_id: %u, item_id: %u, data_type: %u, count: %u, value: %p\n",
 				__FUNCTION__, session_id, node_id, layer_id, item_id, data_type, count, value);
+#else
+	(void)session_id;
+	(void)layer_id;
+	(void)data_type;
+	(void)count;
+#endif
 
 	node = lu_find(ctx->verse.lu_table, node_id);
 
@@ -197,8 +210,14 @@ static void cb_receive_layer_create(const uint8 session_id,
 	struct Node *node;
 	struct ParticleSenderNode *sender_node;
 
+#if NO_DEBUG_PRINT != 1
 	printf("%s() session_id: %u, node_id: %u, layer_id: %u, parent_layer_id: %u, data_type: %u, count: %u, custom_type: %u\n",
 				__FUNCTION__, session_id, node_id, layer_id, parent_layer_id, data_type, count, custom_type);
+#else
+	(void)parent_layer_id;
+	(void)data_type;
+	(void)count;
+#endif
 
 	node = lu_find(ctx->verse.lu_table, node_id);
 
@@ -243,8 +262,14 @@ static void cb_receive_tag_set_value(const uint8 session_id,
 	/* struct ParticleNode *particle_node; */
 	struct ParticleSenderNode *sender_node;
 
+#if NO_DEBUG_PRINT != 1
 	printf("%s() session_id: %u, node_id: %u, taggroup_id: %u, tag_id: %u, data_type: %d, count: %d, value: %p\n",
 				__FUNCTION__, session_id, node_id, taggroup_id, tag_id, data_type, count, value);
+#else
+	(void)session_id;
+	(void)data_type;
+	(void)count;
+#endif
 
 	node = lu_find(ctx->verse.lu_table, node_id);
 
@@ -276,8 +301,15 @@ static void cb_receive_tag_destroy(const uint8 session_id,
 		const uint16 taggroup_id,
 		const uint16 tag_id)
 {
+#if NO_DEBUG_PRINT != 1
 	printf("%s() session_id: %d, node_id: %d, taggroup_id: %d, tag_id: %d\n",
 				__FUNCTION__, session_id, node_id, taggroup_id, tag_id);
+#else
+	(void)session_id;
+	(void)node_id;
+	(void)taggroup_id;
+	(void)tag_id;
+#endif
 }
 
 static void cb_receive_tag_create(const uint8 session_id,
@@ -293,8 +325,12 @@ static void cb_receive_tag_create(const uint8 session_id,
 	struct ParticleSenderNode *sender_node;
 	/* struct ParticleNode *particle_node; */
 
+#if NO_DEBUG_PRINT != 1
 	printf("%s() session_id: %d, node_id: %d, taggroup_id: %d, tag_id: %d, data_type: %d, count: %d, custom_type: %d\n",
 				__FUNCTION__, session_id, node_id, taggroup_id, tag_id, data_type, count, custom_type);
+#else
+	(void)session_id;
+#endif
 
 	node = lu_find(ctx->verse.lu_table, node_id);
 
@@ -368,8 +404,14 @@ static void cb_receive_taggroup_destroy(const uint8 session_id,
 		const uint32 node_id,
 		const uint16 taggroup_id)
 {
+#if NO_DEBUG_PRINT != 1
 	printf("%s() session_id: %d, node_id: %d, taggroup_id: %d\n",
 				__FUNCTION__, session_id, node_id, taggroup_id);
+#else
+	(void)session_id;
+	(void)node_id;
+	(void)taggroup_id;
+#endif
 }
 
 static void cb_receive_taggroup_create(const uint8 session_id,
@@ -381,8 +423,10 @@ static void cb_receive_taggroup_create(const uint8 session_id,
 	struct ParticleSceneNode *scene_node;
 	struct ParticleSenderNode *sender_node;
 
+#if NO_DEBUG_PRINT != 1
 	printf("%s() session_id: %d, node_id: %d, taggroup_id: %d, custom_type: %d\n",
 				__FUNCTION__, session_id, node_id, taggroup_id, custom_type);
+#endif
 
 	node = lu_find(ctx->verse.lu_table, node_id);
 
@@ -423,8 +467,10 @@ static void cb_receive_node_create(const uint8 session_id,
 		const uint16 user_id,
 		const uint16 custom_type)
 {
+#if NO_DEBUG_PRINT != 1
 	printf("%s() session_id: %d, node_id: %d, parent_id: %d, user_id: %d, custom_type: %d\n",
 			__FUNCTION__, session_id, node_id, parent_id, user_id, custom_type);
+#endif
 
 	if(user_id != ctx->verse.user_id) {
 		return;
@@ -483,8 +529,13 @@ static void cb_receive_node_create(const uint8 session_id,
 static void cb_receive_node_destroy(const uint8 session_id,
 		const uint32 node_id)
 {
+#if NO_DEBUG_PRINT != 1
 	printf("%s() session_id: %d, node_id: %d\n",
 			__FUNCTION__, session_id, node_id);
+#else
+	(void)session_id;
+	(void)node_id;
+#endif
 	/* TODO: add some usefull code here  */
 }
 
@@ -492,8 +543,14 @@ static void cb_receive_node_link(const uint8 session_id,
 		const uint32 parent_node_id,
 		const uint32 child_node_id)
 {
+#if NO_DEBUG_PRINT != 1
 	printf("%s() session_id: %d, parent_node_id: %d, child_node_id: %d\n",
 			__FUNCTION__, session_id, parent_node_id, child_node_id);
+#else
+	(void)session_id;
+	(void)parent_node_id;
+	(void)child_node_id;
+#endif
 	/* TODO: add some usefull code here  */
 }
 
@@ -501,8 +558,10 @@ static void cb_receive_connect_accept(const uint8 session_id,
       const uint16 user_id,
       const uint32 avatar_id)
 {
+#if NO_DEBUG_PRINT != 1
 	printf("%s() session_id: %d, user_id: %d, avatar_id: %d\n",
 			__FUNCTION__, session_id, user_id, avatar_id);
+#endif
 
 	ctx->verse.avatar_id = avatar_id;
 	ctx->verse.user_id = user_id;
@@ -518,8 +577,13 @@ static void cb_receive_connect_accept(const uint8 session_id,
 static void cb_receive_connect_terminate(const uint8 session_id,
 		const uint8 error_num)
 {
+#if NO_DEBUG_PRINT != 1
 	printf("%s() session_id: %d, error_num: %d\n",
 			__FUNCTION__, session_id, error_num);
+#else
+	(void)session_id;
+	(void)error_num;
+#endif
 	exit(0);
 }
 
@@ -533,16 +597,15 @@ static void cb_receive_user_authenticate(const uint8 session_id,
 	char *password;
 	int i, is_passwd_supported=0;
 
-	/* Debug print */
+#if NO_DEBUG_PRINT != 1
 	printf("%s() username: %s, auth_methods_count: %d, methods: ",
 			__FUNCTION__, username, auth_methods_count);
+#endif
 
 	for(i=0; i<auth_methods_count; i++) {
-		printf("%d, ", methods[i]);
 		if(methods[i]==VRS_UA_METHOD_PASSWORD)
 			is_passwd_supported = 1;
 	}
-	printf("\n");
 
 	/* Get username, when it is requested */
 	if(username == NULL) {
